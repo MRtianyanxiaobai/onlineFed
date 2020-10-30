@@ -22,12 +22,15 @@ class UserASO(User):
         self.update_data_loader(new_data_num)
         global_model = self.get_global_parameters(server)
         for epoch in range(1, self.local_epochs+1):
+            self.model.train()
             X, y = self.get_next_train_batch()
             self.optimizer.zero_grad()
             output = self.model(X)
             loss = self.loss(output, y)
             loss.backward()
-            self.optimizer.step(global_model)
+            updated_weight, loss = self.optimizer.step(global_model)
+            for local, updated in zip(self.local_model, updated_weight):
+                local.data = updated.data.clone()
         
         self.update_parameters(self.local_model)
         server.update_parameters(self.id, self.local_model, self.train_data_samples)
