@@ -323,3 +323,7 @@ class Metrics(object):
             os.mkdir(os.path.join('out', self.params['dataset']))
         with open(metrics_dir, 'w') as ouf:
             json.dump(metrics, ouf)
+
+class Object:
+    def __init__(self, data):
+        self.__dict__.update(data)

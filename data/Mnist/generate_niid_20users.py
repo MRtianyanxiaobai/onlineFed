@@ -7,6 +7,7 @@ import os
 
 random.seed(1)
 np.random.seed(1)
+
 NUM_USERS = 20 # should be muitiple of 10
 NUM_LABELS = 2
 # Setup directory for train/test data

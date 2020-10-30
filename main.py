@@ -6,14 +6,13 @@ import argparse
 import importlib
 import random
 import os
-from Algorithms.servers.fedAvg import FedAvg
+from Algorithms.scheduler import Scheduler
 from Algorithms.models.model import *
-from utils.plot_utils import *
 import torch
 torch.manual_seed(0)
 
-def main(dataset, algorithm, model, batch_size, learning_rate, lamda, num_glob_iters,
-         local_epochs, optimizer, numusers, K, times, user_data_type):
+def main(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters,
+         local_epochs, optimizer, numusers, times, data_load):
 
     for i in range(times):
         print("---------------Running time:------------",i)
@@ -36,32 +35,28 @@ def main(dataset, algorithm, model, batch_size, learning_rate, lamda, num_glob_i
             else: 
                 model = DNN(60,20,10), model
 
-        # select algorithm
-        if(algorithm == "FedAvg"):
-            server = FedAvg(dataset, algorithm, model, batch_size, learning_rate, lamda, num_glob_iters, local_epochs, optimizer, numusers, i)
+        scheduler = Scheduler(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, i, data_load)
 
-        server.train()
-        server.test()
+        scheduler.run()
 
     # save data
-    if (algorithm == 'FedAvg'):
-        average_data(num_users=numusers, loc_ep1=local_epochs, Numb_Glob_Iters=num_glob_iters, lamb=lamda,learning_rate=learning_rate, algorithms=algorithm, batch_size=batch_size, dataset=dataset, k = K,times = times)
+    average_data(num_users=numusers, loc_ep1=local_epochs, Numb_Glob_Iters=num_glob_iters, lamb=lamda, beta=beta,learning_rate=learning_rate, algorithms=algorithm, batch_size=batch_size, dataset=dataset,times = times)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="Mnist", choices=["Mnist", "Synthetic", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["dnn", "mclr", "cnn"])
     parser.add_argument("--batch_size", type=int, default=20)
-    parser.add_argument("--learning_rate", type=float, default=0.005, help="Local learning rate")
-    parser.add_argument("--lamda", type=int, default=15, help="Regularization term")
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="Local learning rate")
+    parser.add_argument("--lamda", type=int, default=1, help="Regularization term")
+    parser.add_argument("--beta", type=int, default=0.001, help="Decay Coefficient")
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
-    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "FedCache"]) 
+    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO"]) 
     parser.add_argument("--numusers", type=int, default=20, help="Number of Users per round")
-    parser.add_argument("--user_data_type", type=str, default='fixed', choices=["fixed", "cache", 'flow'], help="user data load type")
-    parser.add_argument("--K", type=int, default=5, help="Computation steps")
     parser.add_argument("--times", type=int, default=5, help="running time")
+    parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
     args = parser.parse_args()
 
     print("=" * 80)
@@ -83,11 +78,11 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
         lamda = args.lamda,
+        beta = args.beta,
         num_glob_iters=args.num_global_iters,
         local_epochs=args.local_epochs,
         optimizer= args.optimizer,
         numusers = args.numusers,
-        K=args.K,
-        times = args.times
-        user_data_type=args.user_data_type
+        times = args.times,
+        data_load = args.data_load
         )
