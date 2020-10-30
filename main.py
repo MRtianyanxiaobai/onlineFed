@@ -40,7 +40,7 @@ def main(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_
         scheduler.run()
 
     # save data
-    average_data(num_users=numusers, loc_ep1=local_epochs, Numb_Glob_Iters=num_glob_iters, lamb=lamda, beta=beta,learning_rate=learning_rate, algorithms=algorithm, batch_size=batch_size, dataset=dataset,times = times)
+    # average_data(num_users=numusers, loc_ep1=local_epochs, Numb_Glob_Iters=num_glob_iters, lamb=lamda, beta=beta,learning_rate=learning_rate, algorithms=algorithm, batch_size=batch_size, dataset=dataset,times = times)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

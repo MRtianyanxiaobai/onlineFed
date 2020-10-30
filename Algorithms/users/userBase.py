@@ -34,8 +34,8 @@ class User:
         self.test_data_samples = self.test_data_samples + new_data if self.test_data_samples + new_data < self.test_data_len else self.test_data_len
         self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size, shuffle=True)
         self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size, shuffle=True)
-        self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
-        self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
+        self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
+        self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
         self.iter_trainloader = iter(self.trainloader)
         self.iter_testloader = iter(self.testloader)
     
@@ -92,4 +92,4 @@ class User:
             output = self.model(x)
             train_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
             loss += self.loss(output, y)
-        return train_acc, loss , self.train_samples
+        return train_acc, loss , self.train_data_samples

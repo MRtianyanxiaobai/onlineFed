@@ -5,10 +5,10 @@ import copy
 class ASOOptimizer(Optimizer):
     def __init__(self, params, lr, lamda, beta):
         defaults = dict(lr=lr, lamda=lamda, beta=beta)
-        super(pFedMeOptimizer, self).__init__(params, defaults)
+        super(ASOOptimizer, self).__init__(params, defaults)
 
-        self.sk_grad = copy.deepcopy(list(self.model.parameters()))
-        self.hk = copy.deepcopy(list(self.model.parameters()))
+        self.sk_grad = copy.deepcopy(list(params))
+        self.hk = copy.deepcopy(list(params))
         for param, sk, hk in zip(params, self.sk_grad, self.hk):
             sk.data = torch.zeros_like(param.data)
             hk.data = torch.zeros_like(param.data)
@@ -18,7 +18,6 @@ class ASOOptimizer(Optimizer):
         loss = None
         if closure is not None:
             loss = closure
-        weight_update = central_weight.copy()
         for group in self.param_groups:
             for p, localweight, pre_sk_grad, pre_hk in zip( group['params'], central_weight, self.sk_grad, self.hk):
                 current_sk_grad = p.grad.data + group['lamda'] * (p.data - localweight.data)

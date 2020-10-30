@@ -7,6 +7,7 @@ from Algorithms.servers.serverASO import ServerASO
 from Algorithms.users.userASO import UserASO
 from utils.model_utils import read_data, read_user_data
 import torch
+import h5py
 torch.manual_seed(0)
 
 
@@ -24,6 +25,11 @@ class Scheduler:
         self.num_users = num_users
         self.num_glob_iters = num_glob_iters
         self.local_epochs = local_epochs
+        self.users = []
+        self.avg_local_acc = []
+        self.avg_local_train_acc = []
+        self.avg_local_train_loss = []
+        self.server_acc = []
 
         data = read_data(dataset)
         total_users = len(data[0])
@@ -40,8 +46,11 @@ class Scheduler:
             self.server.append_user(user)
     
     def run(self):
-        for iter in range(self.num_glob_iters):
+        for glob_iter in range(self.num_glob_iters):
+            print("-------------Round number: ",glob_iter, " -------------")
             new_data_flag = torch.rand(self.num_users)
+            activation_users = []
+            new_data_num = []
             for index, val in enumerate(new_data_flag):
                 if val < 0.5:
                     activation_users.append(self.users[index])
@@ -59,6 +68,7 @@ class Scheduler:
     def evaluate_users(self):
         stats = self.users_test()  
         stats_train = self.users_train_error_and_loss()
+        print(stats, stats_train)
         avg_acc = np.sum(stats[2])*1.0/np.sum(stats[1])
         train_acc = np.sum(stats_train[2])*1.0/np.sum(stats_train[1])
         train_loss = sum([x * y for (x, y) in zip(stats_train[1], stats_train[3])]).item() / np.sum(stats_train[1])
