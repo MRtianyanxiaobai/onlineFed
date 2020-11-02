@@ -5,6 +5,7 @@ import numpy as np
 import copy
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.users.userASO import UserASO
+from Algorithms.users.userFedAvg import UserFedAvg
 from utils.model_utils import read_data, read_user_data
 import torch
 import h5py
@@ -37,7 +38,10 @@ class Scheduler:
         test_data = []
         for i in range(self.num_users):
             id, train, test = read_user_data(i, data, dataset)
-            user = UserASO(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+            if algorithm == 'FedAvg':
+                user = UserFedAvg(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+            if algorithm == 'ASO':
+                user = UserASO(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
 
@@ -54,7 +58,7 @@ class Scheduler:
             for index, val in enumerate(new_data_flag):
                 if val < 0.5:
                     activation_users.append(self.users[index])
-                    new_data_num.append(int(val*20))
+                    new_data_num.append(int(val*10))
             for user, new_data in zip(activation_users, new_data_num):
                 user.train(new_data, self.server)
             self.evaluate()

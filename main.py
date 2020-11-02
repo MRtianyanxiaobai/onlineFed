@@ -36,7 +36,6 @@ def main(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_
                 model = DNN(60,20,10), model
 
         scheduler = Scheduler(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, i, data_load)
-
         scheduler.run()
 
     # save data
@@ -48,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="cnn", choices=["dnn", "mclr", "cnn"])
     parser.add_argument("--batch_size", type=int, default=20)
     parser.add_argument("--learning_rate", type=float, default=0.001, help="Local learning rate")
-    parser.add_argument("--lamda", type=int, default=1, help="Regularization term")
+    parser.add_argument("--lamda", type=float, default=1.0, help="Regularization term")
     parser.add_argument("--beta", type=int, default=0.001, help="Decay Coefficient")
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
