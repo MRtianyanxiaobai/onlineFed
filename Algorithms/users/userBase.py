@@ -18,7 +18,7 @@ class User:
         self.lamda = lamda
         self.beta = beta
         self.local_epochs = local_epochs
-        self.optimizer = optimizer
+        self.optimizer_method = optimizer
         self.data_load = data_load
 
         self.train_data_len = len(self.train_data)

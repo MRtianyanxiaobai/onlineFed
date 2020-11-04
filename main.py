@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=20)
     parser.add_argument("--learning_rate", type=float, default=0.001, help="Local learning rate")
     parser.add_argument("--lamda", type=float, default=1.0, help="Regularization term")
-    parser.add_argument("--beta", type=int, default=0.001, help="Decay Coefficient")
+    parser.add_argument("--beta", type=float, default=0.001, help="Decay Coefficient")
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
