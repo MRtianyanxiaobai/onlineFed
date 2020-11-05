@@ -8,7 +8,7 @@ from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvg import UserFedAvg
 from utils.model_utils import read_data, read_user_data
 import torch
-import h5py
+import pandas as pd
 torch.manual_seed(0)
 
 
@@ -119,12 +119,14 @@ class Scheduler:
         alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + self.data_load
         alg = alg + "_" + str(self.times)
         if (len(self.avg_local_acc) != 0 &  len(self.avg_local_train_acc) & len(self.avg_local_train_loss)) :
-            with h5py.File("./results/"+'{}.h5'.format(alg, self.local_epochs), 'w') as hf:
-                hf.create_dataset('avg_local_acc', data=self.avg_local_acc)
-                hf.create_dataset('avg_local_train_acc', data=self.avg_local_train_acc)
-                hf.create_dataset('avg_local_train_loss', data=self.avg_local_train_loss)
-                hf.create_dataset('central_model_acc', data=self.server_acc)
-                hf.close()
+            dictData={}
+            dictData['avg_local_acc'] = self.avg_local_acc[:]
+            dictData['avg_local_train_acc'] = self.avg_local_train_acc[:]
+            dictData['avg_local_train_loss'] = self.avg_local_train_loss[:]
+            dictData['central_model_acc'] = self.server_acc[:]
+            dataframe = pd.DataFrame(dictData)
+            fileName = "./results/"+alg+'.csv'
+            dataframe.to_csv(fileName, index=False, sep=',')
     
 
     

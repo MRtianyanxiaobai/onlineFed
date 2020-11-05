@@ -27,18 +27,26 @@ class User:
         self.test_data_samples = self.test_data_len if data_load == "fixed" else int(self.test_data_len * 0.5)
 
         self.update_data_loader(0)
+        self.iter_trainloader = iter(self.trainloader)
+        self.iter_testloader = iter(self.testloader)
 
     def update_data_loader(self, new_data):
         train_samples = self.train_data_samples + new_data
         test_samples = self.test_data_samples + new_data
-        self.train_data_samples = train_samples if train_samples < self.train_data_len else self.train_data_len
-        self.test_data_samples = test_samples if test_samples < self.test_data_len else self.test_data_len
-        self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size)
-        self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
-        self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
-        self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
-        self.iter_trainloader = iter(self.trainloader)
-        self.iter_testloader = iter(self.testloader)
+        if train_samples < self.train_data_len:
+            self.train_data_samples = train_samples
+            self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size)
+            self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
+            # self.iter_trainloader = iter(self.trainloader)
+        else:
+            self.train_data_samples = self.train_data_len
+        if test_samples < self.test_data_len:
+            self.test_data_samples = test_samples
+            self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
+            self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
+            # self.iter_testloader = iter(self.testloader)
+        else:
+            self.test_data_samples = self.test_data_len
     
     def get_next_train_batch(self):
         try:

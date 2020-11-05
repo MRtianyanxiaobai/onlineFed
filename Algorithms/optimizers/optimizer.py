@@ -23,7 +23,13 @@ class ASOOptimizer(Optimizer):
                 p.data = p.data - group['lr'] * (current_sk_grad - pre_sk_grad.data + pre_hk.data)
                 pre_hk.data = group['beta']*pre_hk.data + (1 - group['beta'])*current_sk_grad
                 pre_sk_grad.data = current_sk_grad
-        return  group['params'], loss
+        # for group in self.param_groups:
+        #     for p, server_weight, pre_sk_grad, pre_hk in zip( group['params'], central_weight, self.sk_grad, self.hk):
+        #         current_sk_grad = p.grad.data + group['lamda'] * (p.data - server_weight.data)
+        #         pre_hk.data = group['beta']*pre_hk.data + (1 - group['beta'])*pre_sk_grad.data
+        #         p.data = p.data - group['lr'] * (current_sk_grad - pre_sk_grad.data + pre_hk.data)
+        #         pre_sk_grad.data = current_sk_grad
+        # return  group['params'], loss
         # loss = None
         # if closure is not None:
         #     loss = closure
