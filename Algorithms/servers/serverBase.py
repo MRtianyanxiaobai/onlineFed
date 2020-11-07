@@ -42,8 +42,8 @@ class Server:
         self.model.eval()
         test_acc = 0
         for x, y in self.testloader:
-            output = self.model(x)
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
         return test_acc, y.shape[0]
     
     def save_model(self):

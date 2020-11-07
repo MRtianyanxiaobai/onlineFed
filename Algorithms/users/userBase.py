@@ -37,16 +37,18 @@ class User:
             self.train_data_samples = train_samples
             self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size)
             self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
-            # self.iter_trainloader = iter(self.trainloader)
         else:
             self.train_data_samples = self.train_data_len
+            self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size)
+            self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
         if test_samples < self.test_data_len:
             self.test_data_samples = test_samples
             self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
             self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
-            # self.iter_testloader = iter(self.testloader)
         else:
             self.test_data_samples = self.test_data_len
+            self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
+            self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
     
     def get_next_train_batch(self):
         try:
@@ -54,7 +56,7 @@ class User:
         except StopIteration:
             self.iter_trainloader = iter(self.trainloader)
             (X, y) = next(self.iter_trainloader)
-        return (X, y)
+        return (X.cuda(), y.cuda())
     
     def get_next_test_batch(self):
         try:
@@ -62,7 +64,7 @@ class User:
         except StopIteration:
             self.iter_testloader = iter(self.testloader)
             (X, y) = next(self.iter_testloader)
-        return (X, y)
+        return (X.cuda(), y.cuda())
     
     def get_grads(self):
         grads = []
@@ -89,8 +91,8 @@ class User:
         self.model.eval()
         test_acc = 0
         for x, y in self.testloaderfull:
-            output = self.model(x)
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
         return test_acc, y.shape[0]
     
     def train_error_and_loss(self):
@@ -98,7 +100,7 @@ class User:
         train_acc = 0
         loss = 0
         for x, y in self.trainloaderfull:
-            output = self.model(x)
-            train_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
-            loss += self.loss(output, y)
+            output = self.model(x.cuda())
+            train_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+            loss += self.loss(output, y.cuda())
         return train_acc, loss , self.train_data_samples

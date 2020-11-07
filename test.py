@@ -42,20 +42,20 @@ from Algorithms.models.model import *
 
 # print(selected)
 
-# model = DNN()
-# grads = []
-# for param in model.parameters():
-#     if param.grad is None:
-#         grads.append(torch.zeros_like(param.data))
-#     else:
-#         grads.append(param.grad.data)
+# model = Mclr_Logistic()
+# alpha = torch.exp(torch.abs(list(model.parameters())[0].data))
+# for index, val in enumerate(alpha):
+#     sumCol = torch.sum(val)
+#     alpha[index] = torch.div(val, sumCol.item())
+# print(alpha)
 
-# for local, glob in zip(grads, model.parameters()):
-#     glob.data = local
-
-# for param in model.parameters():
-#     print(param.data)
-
-x = [1,2,3,4]
-y = (index, i) for index, i in x if i < 3
-print(y)
+# print(list(model.parameters())[0])
+# for index, global_param in enumerate(model.parameters()):
+#     if index == 0:
+#         alpha = torch.div(features, sumFea.item())
+#         print(alpha)
+#         global_param.data = global_param.data.mul(alpha)
+#         print(global_param.data)
+torch.cuda.set_device(0)
+use_gpu = torch.cuda.is_available()
+print(use_gpu)

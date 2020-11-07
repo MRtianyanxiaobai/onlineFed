@@ -10,6 +10,7 @@ from Algorithms.scheduler import Scheduler
 from Algorithms.models.model import *
 import torch
 torch.manual_seed(0)
+torch.cuda.set_device(0)
 
 def main(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters,
          local_epochs, optimizer, numusers, times, data_load):
@@ -19,21 +20,21 @@ def main(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_
         # Generate model
         if(model == "mclr"):
             if(dataset == "Mnist"):
-                model = Mclr_Logistic(), model
+                model = Mclr_Logistic().cuda(), model
             else:
-                model = Mclr_Logistic(60,10), model
+                model = Mclr_Logistic(60,10).cuda(), model
                 
         if(model == "cnn"):
             if(dataset == "Mnist"):
-                model = Net(), model
+                model = Net().cuda(), model
             elif(dataset == "Cifar10"):
-                model = CifarNet(), model
+                model = CifarNet().cuda(), model
             
         if(model == "dnn"):
             if(dataset == "Mnist"):
-                model = DNN(), model
+                model = DNN().cuda(), model
             else: 
-                model = DNN(60,20,10), model
+                model = DNN(60,20,10).cuda(), model
 
         scheduler = Scheduler(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, i, data_load)
         scheduler.run()
