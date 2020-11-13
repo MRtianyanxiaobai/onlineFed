@@ -29,8 +29,9 @@ class UserASO(User):
             loss = self.loss(output, y)
             loss.backward()
             self.optimizer.step(global_model)
-        
-        server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+        update_flag = torch.randn(1)
+        if update_flag < 0.95:
+            server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
 
         return LOSS
 

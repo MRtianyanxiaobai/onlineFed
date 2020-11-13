@@ -1,7 +1,6 @@
 import torch
 import os
 import numpy as np
-import h5py
 import copy
 from torch.utils.data import DataLoader
 
@@ -13,6 +12,8 @@ class Server:
         self.algorithm = algorithm
         self.test_data = test_data
         self.testloader = DataLoader(test_data, len(test_data))
+        self.model_cpoy = copy.deepcopy(list(model.parameters()))
+        self.test_acc = 0
 
         self.status = False
         self.update_list = []
@@ -44,6 +45,7 @@ class Server:
         for x, y in self.testloader:
             output = self.model(x.cuda())
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+        self.test_acc = test_acc*1.0 / y.shape[0]
         return test_acc, y.shape[0]
     
     def save_model(self):

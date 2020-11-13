@@ -21,6 +21,8 @@ class User:
         self.optimizer_method = optimizer
         self.data_load = data_load
 
+        self.test_acc = 0
+
         self.train_data_len = len(self.train_data)
         self.test_data_len = len(self.test_data)
         self.train_data_samples = self.train_data_len if data_load == "fixed" else int(self.train_data_len * 0.5)
@@ -93,6 +95,7 @@ class User:
         for x, y in self.testloaderfull:
             output = self.model(x.cuda())
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+        self.test_acc = test_acc*1.0 / y.shape[0]
         return test_acc, y.shape[0]
     
     def train_error_and_loss(self):
@@ -103,4 +106,4 @@ class User:
             output = self.model(x.cuda())
             train_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
             loss += self.loss(output, y.cuda())
-        return train_acc, loss , self.train_data_samples
+        return train_acc, loss.item() , self.train_data_samples

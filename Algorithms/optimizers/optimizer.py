@@ -12,7 +12,7 @@ class ASOOptimizer(Optimizer):
         for param, sk, hk in zip(params.parameters(), self.sk_grad, self.hk):
             sk.data = torch.zeros_like(param.data)
             hk.data = torch.zeros_like(param.data)
-    # no dynamic_step_size and feature learning    
+    # no dynamic_step_size  
     def step(self, central_weight, closure=None):
         loss = None
         if closure is not None:
@@ -21,19 +21,5 @@ class ASOOptimizer(Optimizer):
             for p, server_weight, pre_sk_grad, pre_hk in zip( group['params'], central_weight, self.sk_grad, self.hk):
                 current_sk_grad = p.grad.data + group['lamda'] * (p.data - server_weight.data)
                 p.data = p.data - group['lr'] * (current_sk_grad - pre_sk_grad.data + pre_hk.data)
-                pre_hk.data = group['beta']*pre_hk.data + (1 - group['beta'])*current_sk_grad
+                pre_hk.data = group['beta']*pre_hk.data + (1 - group['beta'])*pre_sk_grad.data
                 pre_sk_grad.data = current_sk_grad
-        # for group in self.param_groups:
-        #     for p, server_weight, pre_sk_grad, pre_hk in zip( group['params'], central_weight, self.sk_grad, self.hk):
-        #         current_sk_grad = p.grad.data + group['lamda'] * (p.data - server_weight.data)
-        #         pre_hk.data = group['beta']*pre_hk.data + (1 - group['beta'])*pre_sk_grad.data
-        #         p.data = p.data - group['lr'] * (current_sk_grad - pre_sk_grad.data + pre_hk.data)
-        #         pre_sk_grad.data = current_sk_grad
-        # return  group['params'], loss
-        # loss = None
-        # if closure is not None:
-        #     loss = closure
-        # for group in self.param_groups:
-        #     for p in group['params']:
-        #         p.data = p.data - group['lr'] * p.grad.data
-        # return  group['params'], loss

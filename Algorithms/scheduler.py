@@ -4,8 +4,11 @@ import json
 import numpy as np
 import copy
 from Algorithms.servers.serverASO import ServerASO
+from Algorithms.servers.serverFedAvg import ServerFedAvg
+from Algorithms.servers.serverFAFed import ServerFAFed
 from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvg import UserFedAvg
+from Algorithms.users.userFAFed import UserFAFed
 from utils.model_utils import read_data, read_user_data
 import torch
 import pandas as pd
@@ -42,10 +45,16 @@ class Scheduler:
                 user = UserFedAvg(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'ASO':
                 user = UserASO(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+            if algorithm == 'FAFed':
+                user = UserFAFed(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
-
-        self.server = ServerASO(algorithm, model, test_data)
+        if algorithm == 'FedAvg':
+            self.server = ServerFedAvg(algorithm, model, test_data)
+        if algorithm == 'ASO':
+            self.server = ServerASO(algorithm, model, test_data)
+        if algorithm == 'FAFed':
+            self.server = ServerFAFed(algorithm, model, test_data)
         for user in self.users:
             self.server.append_user(user)
     
@@ -74,7 +83,7 @@ class Scheduler:
         stats_train = self.users_train_error_and_loss()
         avg_acc = np.sum(stats[2])*1.0/np.sum(stats[1])
         train_acc = np.sum(stats_train[2])*1.0/np.sum(stats_train[1])
-        train_loss = sum([x * y for (x, y) in zip(stats_train[1], stats_train[3])]).item() / np.sum(stats_train[1])
+        train_loss = sum([x * y for (x, y) in zip(stats_train[1], stats_train[3])]) / np.sum(stats_train[1])
         self.avg_local_acc.append(avg_acc)
         self.avg_local_train_acc.append(train_acc)
         self.avg_local_train_loss.append(train_loss)

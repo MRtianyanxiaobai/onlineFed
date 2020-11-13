@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
-    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO"]) 
+    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "FAFed"]) 
     parser.add_argument("--numusers", type=int, default=20, help="Number of Users per round")
     parser.add_argument("--times", type=int, default=5, help="running time")
     parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
