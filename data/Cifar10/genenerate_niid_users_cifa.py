@@ -21,7 +21,7 @@ for _, train_data in enumerate(testloader,0):
 random.seed(1)
 np.random.seed(1)
 NUM_USERS = 10 # should be muitiple of 10
-NUM_LABELS = 5
+NUM_LABELS = 3
 # Setup directory for train/test data
 train_path = './data/train/cifa_train.json'
 test_path = './data/test/cifa_test.json'

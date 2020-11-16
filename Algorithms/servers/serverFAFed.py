@@ -17,9 +17,9 @@ class ServerFAFed(Server):
         for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
             global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
             user_old_param.data = user_new_param.data.clone()
+        self.model.eval()
         updated_stats = self.test()
         updated_acc = updated_stats[0]*1.0/updated_stats[1]
         if updated_acc < self.test_acc:
             for updated_param, old_param in zip(self.model.parameters(), self.model_copy, self.users[user_updated.id].model, user_updated.model):
-                updated_param.data = old_param.data - 0.5*(user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
-        
+                updated_param.data = old_param.data - 0.3*(user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)

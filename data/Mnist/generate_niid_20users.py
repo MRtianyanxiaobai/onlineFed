@@ -42,7 +42,7 @@ for user in trange(NUM_USERS):
         users_lables.append(l)
 unique, counts = np.unique(users_lables, return_counts=True)
 print("--------------")
-print(unique, counts, users_lables)
+print(unique, counts,  )
 
 def ram_dom_gen(total, size):
     print(total)

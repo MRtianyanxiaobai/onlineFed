@@ -19,6 +19,7 @@ class Scheduler:
     def __init__(self, dataset,algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters,
                  local_epochs, optimizer, num_users, times, data_load):
         self.dataset = dataset
+        self.model = copy.deepcopy(model)
         self.algorithm = algorithm
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -61,15 +62,8 @@ class Scheduler:
     def run(self):
         for glob_iter in range(self.num_glob_iters):
             print("-------------Round number: ",glob_iter, " -------------")
-            new_data_flag = torch.rand(self.num_users)
-            activation_users = []
-            new_data_num = []
-            for index, val in enumerate(new_data_flag):
-                if val < 0.5:
-                    activation_users.append(self.users[index])
-                    new_data_num.append(int(val*10))
-            for user, new_data in zip(activation_users, new_data_num):
-                user.train(new_data, self.server)
+            for user in self.users:
+                user.train(self.server)
             self.evaluate()
         self.save_results()
         self.server.save_model()
@@ -124,8 +118,8 @@ class Scheduler:
         return ids, num_samples, tot_correct, losses
     
     def save_results(self):
-        alg = self.dataset + "_" + self.algorithm
-        alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + self.data_load
+        alg = self.dataset + "_" + self.algorithm + "_" + self.model[1]
+        alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + str(self.num_glob_iters) + "ep" + "_" + self.data_load
         alg = alg + "_" + str(self.times)
         if (len(self.avg_local_acc) != 0 &  len(self.avg_local_train_acc) & len(self.avg_local_train_loss)) :
             dictData={}

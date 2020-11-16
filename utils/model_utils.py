@@ -90,7 +90,7 @@ def read_cifa_data():
 
     random.seed(1)
     np.random.seed(1)
-    NUM_USERS = 20 # should be muitiple of 10
+    NUM_USERS = 10 # should be muitiple of 10
     NUM_LABELS = 3
 
     cifa_data_image = []

@@ -2,3 +2,5 @@ results
 .vscode
 **/__pycache__
 data/**/data
+history
+.DS_Store

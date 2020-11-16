@@ -16,10 +16,16 @@ class UserFedAvg(User):
             self.loss = nn.NLLLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
     
-    def train(self, new_data_num, server):
+    def train(self, server):
+        if self.can_train() == False:
+            return False
+        else: 
+            if self.trained == True:
+                server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+                self.trained = False
+
         LOSS = 0
         self.model.train()
-        self.update_data_loader(new_data_num)
         global_model = self.get_global_parameters(server)
         for p, new_param in zip(self.model.parameters(), global_model):
             p.data = new_param.clone()
@@ -32,8 +38,9 @@ class UserFedAvg(User):
             loss.backward()
             self.optimizer.step()
         
-        update_flag = torch.randn(1)
-        if update_flag < 0.95:
+        self.trained = True
+        if self.check_async_update():
             server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+            self.trained = False
 
         return LOSS

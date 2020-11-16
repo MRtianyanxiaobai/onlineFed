@@ -38,9 +38,6 @@ def main(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_
         scheduler = Scheduler(dataset, algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, i, data_load)
         scheduler.run()
 
-    # save data
-    # average_data(num_users=numusers, loc_ep1=local_epochs, Numb_Glob_Iters=num_glob_iters, lamb=lamda, beta=beta,learning_rate=learning_rate, algorithms=algorithm, batch_size=batch_size, dataset=dataset,times = times)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="Mnist", choices=["Mnist", "Synthetic", "Cifar10"])

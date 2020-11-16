@@ -21,6 +21,9 @@ class User:
         self.optimizer_method = optimizer
         self.data_load = data_load
 
+        self.trained = False
+        self.async_delay = 0.6
+
         self.test_acc = 0
 
         self.train_data_len = len(self.train_data)
@@ -88,6 +91,31 @@ class User:
     def update_parameters(self, new_params):
         for param , new_param in zip(self.model.parameters(), new_params):
             param.data = new_param.data.clone()
+
+    def has_new_data(self):
+        if self.data_load == 'fixed': 
+            return False
+        data_flag = torch.rand(1).item()
+        if data_flag < 0.2:
+            self.update_data_loader(int(data_flag*20))
+            return True
+        return False
+    
+    def can_train(self):
+        if self.trained == False:
+            return self.has_new_data()
+        else:
+            return self.check_async_update()
+
+    def check_async_update(self):
+        update_flag = torch.rand(1).item()
+        if update_flag < self.async_delay:
+            self.async_delay = 0.4
+            return True
+        else:
+            self.async_delay = self.async_delay + 0.1
+            return False
+            
     
     def test(self):
         self.model.eval()

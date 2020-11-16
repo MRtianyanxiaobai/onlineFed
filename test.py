@@ -56,6 +56,11 @@ from Algorithms.models.model import *
 #         print(alpha)
 #         global_param.data = global_param.data.mul(alpha)
 #         print(global_param.data)
-torch.cuda.set_device(0)
-use_gpu = torch.cuda.is_available()
-print(use_gpu)
+
+def check_status():
+    return True
+
+if check_status():
+    print("True")
+else: 
+    print("False")
