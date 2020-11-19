@@ -8,9 +8,10 @@ import numpy as np
 import copy
 
 class User:
-    def __init__(self, id, train_data, test_data, model, batch_size = 0, learning_rate = 0, beta = 0, lamda = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
+    def __init__(self, id, train_data, test_data, model, async_process, batch_size = 0, learning_rate = 0, beta = 0, lamda = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
         self.model = copy.deepcopy(model)
         self.id = id
+        self.async_process = async_process
         self.train_data = train_data
         self.test_data = test_data
         self.batch_size = batch_size
@@ -21,6 +22,7 @@ class User:
         self.optimizer_method = optimizer
         self.data_load = data_load
 
+        # async config
         self.trained = False
         self.async_delay = 0.6
 
