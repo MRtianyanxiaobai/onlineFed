@@ -8,9 +8,10 @@ import numpy as np
 import copy
 
 class User:
-    def __init__(self, id, train_data, test_data, model, batch_size = 0, learning_rate = 0, beta = 0, lamda = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
+    def __init__(self, id, train_data, test_data, model, async_process, batch_size = 0, learning_rate = 0, beta = 0, lamda = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
         self.model = copy.deepcopy(model)
         self.id = id
+        self.async_process = async_process
         self.train_data = train_data
         self.test_data = test_data
         self.batch_size = batch_size
@@ -21,8 +22,9 @@ class User:
         self.optimizer_method = optimizer
         self.data_load = data_load
 
+        # async train config
         self.trained = False
-        self.async_delay = 0.6
+        self.async_delay = 0.6 # 延迟更新
 
         self.test_acc = 0
 
@@ -93,8 +95,6 @@ class User:
             param.data = new_param.data.clone()
 
     def has_new_data(self):
-        if self.data_load == 'fixed': 
-            return False
         data_flag = torch.rand(1).item()
         if data_flag < 0.2:
             self.update_data_loader(int(data_flag*20))
@@ -102,12 +102,16 @@ class User:
         return False
     
     def can_train(self):
-        if self.trained == False:
+        if self.async_process == False or self.trained == False:
+            if self.data_load == 'fixed':
+                return True
             return self.has_new_data()
         else:
             return self.check_async_update()
 
     def check_async_update(self):
+        if self.async_process == False:
+            return True
         update_flag = torch.rand(1).item()
         if update_flag < self.async_delay:
             self.async_delay = 0.4

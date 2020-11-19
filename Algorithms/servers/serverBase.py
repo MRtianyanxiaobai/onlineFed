@@ -7,10 +7,11 @@ from torch.utils.data import DataLoader
 from utils.model_utils import Object
 
 class Server:
-    def __init__(self, algorithm, model, test_data):
+    def __init__(self, algorithm, model, async_process, test_data):
         self.model = copy.deepcopy(model)
         self.algorithm = algorithm
         self.test_data = test_data
+        self.async_process = async_process
         self.testloader = DataLoader(test_data, len(test_data))
         self.model_cpoy = copy.deepcopy(list(model.parameters()))
         self.test_acc = 0
@@ -24,7 +25,8 @@ class Server:
 
     def update_parameters(self, id, new_parameters, sample_len):
         self.append_update_cache(id, new_parameters, sample_len)
-        self.clear_update_cache()
+        if self.async_process == True:
+            self.clear_update_cache()
     
     def append_update_cache(self, id, new_parameters, samples_len):
         self.update_list.append(Object(dict(id=id, model=new_parameters, samples=samples_len)))
@@ -33,8 +35,9 @@ class Server:
         cache = self.update_list[:]
         self.update_list = []
         self.status = True
-        for user_data in cache:
-            self.aggregate_parameters(user_data)
+        self.aggregate_parameters(cache)
+        # for user_data in cache:
+        #     self.aggregate_parameters(user_data)
         self.status = False
         if len(self.update_list) != 0:
             self.clear_update_cache()

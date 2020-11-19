@@ -8,8 +8,8 @@ from Algorithms.optimizers.optimizer import ASOOptimizer
 from Algorithms.users.userBase import User
 
 class UserASO(User):
-    def __init__(self, id, train_data, test_data, model, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load):
-        super().__init__(id, train_data, test_data, model[0], batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load)
+    def __init__(self, id, train_data, test_data, model, async_process, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load):
+        super().__init__(id, train_data, test_data, model[0], async_process, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load)
         if(model[1] == "Mclr_CrossEntropy"):
             self.loss = nn.CrossEntropyLoss()
         else:

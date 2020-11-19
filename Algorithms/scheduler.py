@@ -16,13 +16,14 @@ torch.manual_seed(0)
 
 
 class Scheduler:
-    def __init__(self, dataset,algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters,
-                 local_epochs, optimizer, num_users, times, data_load):
+    def __init__(self, dataset,algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
+                 local_epochs, optimizer, num_users, user_labels, niid, times, data_load):
         self.dataset = dataset
         self.model = copy.deepcopy(model)
         self.algorithm = algorithm
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+        self.async_process = async_process
         self.lamda = lamda
         self.beta = beta
         self.times = times
@@ -35,27 +36,27 @@ class Scheduler:
         self.avg_local_train_acc = []
         self.avg_local_train_loss = []
         self.server_acc = []
-
-        data = read_data(dataset)
-        total_users = len(data[0])
-        self.num_users = min(total_users, num_users)
+        # old data split
+        data = read_data(dataset, niid, num_users, user_labels)
+        self.num_users = num_users
+        
         test_data = []
         for i in range(self.num_users):
             id, train, test = read_user_data(i, data, dataset)
             if algorithm == 'FedAvg':
-                user = UserFedAvg(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+                user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'ASO':
-                user = UserASO(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+                user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'FAFed':
-                user = UserFAFed(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+                user = UserFAFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
         if algorithm == 'FedAvg':
-            self.server = ServerFedAvg(algorithm, model, test_data)
+            self.server = ServerFedAvg(algorithm, model, async_process, test_data)
         if algorithm == 'ASO':
-            self.server = ServerASO(algorithm, model, test_data)
+            self.server = ServerASO(algorithm, model, async_process, test_data)
         if algorithm == 'FAFed':
-            self.server = ServerFAFed(algorithm, model, test_data)
+            self.server = ServerFAFed(algorithm, model, async_process, test_data)
         for user in self.users:
             self.server.append_user(user)
     
@@ -64,6 +65,8 @@ class Scheduler:
             print("-------------Round number: ",glob_iter, " -------------")
             for user in self.users:
                 user.train(self.server)
+            if self.async_process == False:
+                self.server.clear_update_cache()
             self.evaluate()
         self.save_results()
         self.server.save_model()
