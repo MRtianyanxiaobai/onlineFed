@@ -23,6 +23,7 @@ class Scheduler:
         self.algorithm = algorithm
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+        self.async_process = async_process
         self.lamda = lamda
         self.beta = beta
         self.times = times
@@ -35,13 +36,9 @@ class Scheduler:
         self.avg_local_train_acc = []
         self.avg_local_train_loss = []
         self.server_acc = []
-
         # old data split
-        data = read_data(dataset)
-        total_users = len(data[0])
-        self.num_users = min(total_users, num_users)
-        # 
-
+        data = read_data(dataset, niid, num_users, user_labels)
+        self.num_users = num_users
         test_data = []
         for i in range(self.num_users):
             id, train, test = read_user_data(i, data, dataset)
@@ -67,6 +64,8 @@ class Scheduler:
             print("-------------Round number: ",glob_iter, " -------------")
             for user in self.users:
                 user.train(self.server)
+            if self.async_process == False:
+                self.server.clear_update_cache()
             self.evaluate()
         self.save_results()
         self.server.save_model()

@@ -11,7 +11,11 @@ import torch
 torch.manual_seed(0)
 torch.cuda.set_device(0)
 
+<<<<<<< HEAD
 def main(dataset, algorithm, model, process_type, batch_size, learning_rate, lamda, beta, num_glob_iters,
+=======
+def main(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
+>>>>>>> 6a0003457e0d0a478ab0fb6aee07bbfdef1f2a84
          local_epochs, optimizer, numusers, user_labels, niid, times, data_load):
 
     for i in range(times):
@@ -35,7 +39,11 @@ def main(dataset, algorithm, model, process_type, batch_size, learning_rate, lam
             else: 
                 model = DNN(60,20,10).cuda(), model
 
+<<<<<<< HEAD
         scheduler = Scheduler(dataset, algorithm, model, process_type, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
+=======
+        scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
+>>>>>>> 6a0003457e0d0a478ab0fb6aee07bbfdef1f2a84
         scheduler.run()
 
 if __name__ == "__main__":
@@ -51,9 +59,15 @@ if __name__ == "__main__":
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
     parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "FAFed"]) 
+<<<<<<< HEAD
     parser.add_argument("--numusers", type=int, default=10, help="Number of Users per round")
     parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
     parser.add_argument("--niid", type=bool, default=True, help="data distrabution for iid or niid")
+=======
+    parser.add_argument("--numusers", type=int, default=20, help="Number of Users per round")
+    parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
+    parser.add_argument("--niid", type=bool, default=True, help="Data Distribution")
+>>>>>>> 6a0003457e0d0a478ab0fb6aee07bbfdef1f2a84
     parser.add_argument("--times", type=int, default=5, help="running time")
     parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
     args = parser.parse_args()
@@ -83,7 +97,11 @@ if __name__ == "__main__":
         local_epochs=args.local_epochs,
         optimizer= args.optimizer,
         numusers = args.numusers,
+<<<<<<< HEAD
         client_labels = args.user_labels,
+=======
+        user_labels=args.user_labels,
+>>>>>>> 6a0003457e0d0a478ab0fb6aee07bbfdef1f2a84
         niid = args.niid,
         times = args.times,
         data_load = args.data_load
