@@ -8,8 +8,8 @@ import os
 random.seed(1)
 np.random.seed(1)
 
-NUM_USERS = 10 # should be muitiple of 10
-NUM_LABELS = 5
+NUM_USERS = 20 # should be muitiple of 10
+NUM_LABELS = 2
 # Setup directory for train/test data
 train_path = './data/train/mnist_train.json'
 test_path = './data/test/mnist_test.json'
@@ -30,8 +30,10 @@ mnist_data = []
 for i in trange(10):
     idx = mnist.target==str(i)
     mnist_data.append(mnist.data[idx])
-
+len_sample = [len(v) for v in mnist_data]
 print("\nNumb samples of each label:\n", [len(v) for v in mnist_data])
+
+
 users_lables = []
 
 print("idx",idx)
@@ -62,30 +64,37 @@ for total_value, count in zip(mnist_data, counts):
 print("--------------")
 print(number_sample)
 
-i = 0
-number_samples = []
-for i in range(len(number_sample[0])):
-    for sample in number_sample:
-        print(sample)
-        number_samples.append(sample[i])
+# i = 0
+# number_samples = []
+# for i in range(len(number_sample[0])):
+#     for sample in number_sample:
+#         print(sample)
+#         number_samples.append(sample[i])
 
-print("--------------")
-print(number_samples)
+# print("--------------")
+# print(number_samples)
 
 ###### CREATE USER DATA SPLIT #######
 # Assign 100 samples to each user
 X = [[] for _ in range(NUM_USERS)]
 y = [[] for _ in range(NUM_USERS)]
 count = 0
+idx = np.zeros(shape=10, dtype=np.int)
+part_index = np.zeros(shape=10,dtype=np.int)
 for user in trange(NUM_USERS):
     for j in range(NUM_LABELS):  # 4 labels for each users
         l = (user + j) % 10
         print("value of L",l)
-        print("value of count",count)
-        num_samples =  number_samples[count] # num sample
-        count = count + 1
-        if idx[l] + num_samples < len(mnist_data[l]):
-            X[user] += mnist_data[l][idx[l]:num_samples].tolist()
+        # print("value of count",count)
+        # num_samples =  number_samples[count] # num sample
+        num_samples = number_sample[l][part_index[l]]
+        part_index[l] = part_index[l] + 1
+        # count = count + 1
+        if idx[l] + num_samples <= len(mnist_data[l]):
+            # X[user] += mnist_data[l][idx[l]:[l]+num_samples].tolist()
+            # y[user] += (l*np.ones(num_samples)).tolist()
+            # idx[l] += num_samples
+            X[user] += mnist_data[l][idx[l]:idx[l]+num_samples].tolist()
             y[user] += (l*np.ones(num_samples)).tolist()
             idx[l] += num_samples
             print("check len os user:", user, j,"len data", len(X[user]), num_samples)
@@ -100,7 +109,6 @@ test_data = {'users': [], 'user_data':{}, 'num_samples':[]}
 # for i in trange(5, ncols=120):
 for i in range(NUM_USERS):
     uname = 'f_{0:05d}'.format(i)
-    
     combined = list(zip(X[i], y[i]))
     random.shuffle(combined)
     X[i][:], y[i][:] = zip(*combined)
