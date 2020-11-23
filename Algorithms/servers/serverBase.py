@@ -5,6 +5,7 @@ import copy
 from torch.utils.data import DataLoader
 
 from utils.model_utils import Object
+can_gpu = torch.cuda.is_available()
 
 class Server:
     def __init__(self, algorithm, model, async_process, test_data):

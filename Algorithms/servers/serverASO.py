@@ -29,14 +29,18 @@ class ServerASO(Server):
                 #         global_param.data = global_param.data.mul(alpha)
         else:
             for user_updated in user_data:
-                self.users[user_updated.id] = user_updated
+                self.users[user_updated.id].samples = user_updated.samples
+                for new_param, old_param in zip(user_updated.model, self.users[user_updated.id].model):
+                    old_param.data = new_param.data.clone()
             total_train = 0
             for user in self.users.values():
                 total_train += user.samples
-            # 模型聚合
-            for user in self.users.values():
-                for global_param, local_param in zip(self.model.parameters(), user.model):
-                    global_param.data = (user.samples / total_train)*local_param.data
+            for index, global_copy in enumerate(self.model_cpoy):
+                global_copy.data = torch.zeros_like(global_copy.data)
+                for user in self.users.values():
+                    global_copy.data = global_copy.data + (user.samples / total_train)*user.model[index].data
+            for global_param, global_copy in zip(self.model.parameters(), self.model_cpoy):
+                global_param.data = global_copy.data.clone()
 
         
 

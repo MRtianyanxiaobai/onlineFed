@@ -10,39 +10,44 @@ from Algorithms.models.model import *
 import torch
 torch.manual_seed(0)
 torch.cuda.set_device(0)
+can_gpu = torch.cuda.is_available()
 
 def main(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
          local_epochs, optimizer, numusers, user_labels, niid, times, data_load):
-
+    print(async_process)
     for i in range(times):
         print("---------------Running time:------------",i)
         # Generate model
         if(model == "mclr"):
-            if(dataset == "Mnist"):
-                model = Mclr_Logistic().cuda(), model
+            if(dataset == "MNIST"):
+                pre_model = Mclr_Logistic()
             else:
-                model = Mclr_Logistic(60,10).cuda(), model
+                pre_model = Mclr_Logistic(60,10)
                 
         if(model == "cnn"):
-            if(dataset == "Mnist"):
-                model = Net().cuda(), model
-            elif(dataset == "Cifar10"):
-                model = CifarNet().cuda(), model
-            
-        if(model == "dnn"):
-            if(dataset == "Mnist"):
-                model = DNN().cuda(), model
-            else: 
-                model = DNN(60,20,10).cuda(), model
-
+            if(dataset == "MNIST"):
+                pre_model = Net()
+            else:
+                pre_model = CifarNet()
+        if can_gpu:
+            pre_model = pre_model.cuda()
+        model = pre_model, model 
         scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
         scheduler.run()
+        
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Unsupported value encountered.')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="Mnist", choices=["Mnist", "Synthetic", "Cifar10"])
-    parser.add_argument("--model", type=str, default="cnn", choices=["dnn", "mclr", "cnn"])
-    parser.add_argument("--async_process", type=bool, default=True)
+    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
+    parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])
+    parser.add_argument("--async_process", type=str2bool, default=True)
     parser.add_argument("--batch_size", type=int, default=20)
     parser.add_argument("--learning_rate", type=float, default=0.001, help="Local learning rate")
     parser.add_argument("--lamda", type=float, default=1.0, help="Regularization term")
@@ -53,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "FAFed"]) 
     parser.add_argument("--numusers", type=int, default=10, help="Number of Users per round")
     parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
-    parser.add_argument("--niid", type=bool, default=True, help="data distrabution for iid or niid")
+    parser.add_argument("--niid", type=str2bool, default=True, help="data distrabution for iid or niid")
     parser.add_argument("--times", type=int, default=5, help="running time")
     parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
     args = parser.parse_args()
@@ -83,7 +88,7 @@ if __name__ == "__main__":
         local_epochs=args.local_epochs,
         optimizer= args.optimizer,
         numusers = args.numusers,
-        client_labels = args.user_labels,
+        user_labels = args.user_labels,
         niid = args.niid,
         times = args.times,
         data_load = args.data_load

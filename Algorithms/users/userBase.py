@@ -8,7 +8,7 @@ import numpy as np
 import copy
 
 class User:
-    def __init__(self, id, train_data, test_data, model, async_process, batch_size = 0, learning_rate = 0, beta = 0, lamda = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
+    def __init__(self, id, train_data, test_data, model, async_process, batch_size = 0, learning_rate = 0, lamda = 0, beta = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
         self.model = copy.deepcopy(model)
         self.id = id
         self.async_process = async_process
@@ -29,8 +29,8 @@ class User:
 
         self.train_data_len = len(self.train_data)
         self.test_data_len = len(self.test_data)
-        self.train_data_samples = self.train_data_len if data_load == "fixed" else int(self.train_data_len * 0.5)
-        self.test_data_samples = self.test_data_len if data_load == "fixed" else int(self.test_data_len * 0.5)
+        self.train_data_samples = self.train_data_len if data_load == "fixed" else int(self.train_data_len * 0.7)
+        self.test_data_samples = self.test_data_len if data_load == "fixed" else int(self.test_data_len * 0.7)
 
         self.update_data_loader(0)
         self.iter_trainloader = iter(self.trainloader)
@@ -55,6 +55,8 @@ class User:
             self.test_data_samples = self.test_data_len
             self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
             self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
+        # self.iter_trainloader = iter(self.trainloader)
+        # self.iter_testloader = iter(self.testloader)
     
     def get_next_train_batch(self):
         try:
@@ -95,7 +97,7 @@ class User:
 
     def has_new_data(self):
         data_flag = torch.rand(1).item()
-        if data_flag < 0.2:
+        if data_flag < 0.3:
             self.update_data_loader(int(data_flag*20))
             return True
         return False

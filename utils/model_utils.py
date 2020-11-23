@@ -29,6 +29,7 @@ def read_data(dataset, niid, num_users, user_labels):
         trainset = torchvision.datasets.CIFAR10(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.CIFAR10(root='./data', train=False,download=True, transform=transform)
     if dataset == 'MNIST':
+        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(0.5, 0.5)])
         trainset = torchvision.datasets.MNIST(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.MNIST(root='./data', train=False,download=True, transform=transform)
     if dataset == 'FasionMNIST':
@@ -71,7 +72,7 @@ def read_data(dataset, niid, num_users, user_labels):
         nums = []
         temp = []
         for i in range(size - 1):
-            val = np.random.randint(total//(size + 1), total//2)
+            val = np.random.randint(total//(size - i + 1), total//(size - i - 1))
             temp.append(val)
             total -= val
         temp.append(total)

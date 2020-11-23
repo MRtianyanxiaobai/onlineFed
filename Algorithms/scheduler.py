@@ -21,6 +21,7 @@ class Scheduler:
         self.dataset = dataset
         self.model = copy.deepcopy(model)
         self.algorithm = algorithm
+        self.optimizer = optimizer
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.async_process = async_process
@@ -31,6 +32,8 @@ class Scheduler:
         self.num_users = num_users
         self.num_glob_iters = num_glob_iters
         self.local_epochs = local_epochs
+        self.user_labels = user_labels
+        self.niid = niid
         self.users = []
         self.avg_local_acc = []
         self.avg_local_train_acc = []
@@ -120,8 +123,16 @@ class Scheduler:
         return ids, num_samples, tot_correct, losses
     
     def save_results(self):
-        alg = self.dataset + "_" + self.algorithm + "_" + self.model[1]
-        alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + str(self.num_glob_iters) + "ep" + "_" + self.data_load
+        alg = self.dataset + "_" + self.algorithm + "_" + self.model[1] + "_" + self.optimizer
+        if self.async_process == True:
+            alg = alg + "_async"
+        else:
+            alg = alg + "_sync"
+        if self.niid == True:
+            alg = alg + "_niid"
+        else:
+            alg = alg + "_iid"
+        alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.user_labels) + "l" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + str(self.num_glob_iters) + "ep" + "_" + self.data_load
         alg = alg + "_" + str(self.times)
         if (len(self.avg_local_acc) != 0 &  len(self.avg_local_train_acc) & len(self.avg_local_train_loss)) :
             dictData={}
