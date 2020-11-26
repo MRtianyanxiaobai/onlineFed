@@ -10,6 +10,7 @@ import copy
 class User:
     def __init__(self, id, train_data, test_data, model, async_process, batch_size = 0, learning_rate = 0, lamda = 0, beta = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
         self.model = copy.deepcopy(model)
+        self.server_model = model
         self.id = id
         self.async_process = async_process
         self.train_data = train_data
@@ -62,9 +63,10 @@ class User:
         try:
             (X, y) = next(self.iter_trainloader)
         except StopIteration:
+            print("new iter trainloader")
             self.iter_trainloader = iter(self.trainloader)
             (X, y) = next(self.iter_trainloader)
-        return (X.cuda(), y.cuda())
+        return (X, y)
     
     def get_next_test_batch(self):
         try:
@@ -72,7 +74,7 @@ class User:
         except StopIteration:
             self.iter_testloader = iter(self.testloader)
             (X, y) = next(self.iter_testloader)
-        return (X.cuda(), y.cuda())
+        return (X, y)
     
     def get_grads(self):
         grads = []
@@ -88,8 +90,10 @@ class User:
             param.detach()
         return self.model.parameters()
     
-    def get_global_parameters(self, server):
-        return server.model.parameters()
+    def get_global_parameters(self, server=0):
+        if server!=0:
+            return server.model.parameters()
+        return list(self.server_model.parameters())
     
     def update_parameters(self, new_params):
         for param , new_param in zip(self.model.parameters(), new_params):
@@ -103,12 +107,9 @@ class User:
         return False
     
     def can_train(self):
-        if self.async_process == False or self.trained == False:
-            if self.data_load == 'fixed':
-                return True
-            return self.has_new_data()
-        else:
-            return self.check_async_update()
+        if self.data_load == 'fixed':
+            return True
+        return self.has_new_data()
 
     def check_async_update(self):
         if self.async_process == False:
@@ -126,8 +127,8 @@ class User:
         self.model.eval()
         test_acc = 0
         for x, y in self.testloaderfull:
-            output = self.model(x.cuda())
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+            output = self.model(x)
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         self.test_acc = test_acc*1.0 / y.shape[0]
         return test_acc, y.shape[0]
     
@@ -136,7 +137,8 @@ class User:
         train_acc = 0
         loss = 0
         for x, y in self.trainloaderfull:
-            output = self.model(x.cuda())
-            train_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
-            loss += self.loss(output, y.cuda())
+            output = self.model(x)
+            train_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+            loss += self.loss(output, y)
+        print(self.id, "loss ", loss.item())
         return train_acc, loss.item() , self.train_data_samples

@@ -15,7 +15,7 @@ import pandas as pd
 torch.manual_seed(0)
 
 
-class Scheduler:
+class SingleScheduler:
     def __init__(self, dataset,algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
                  local_epochs, optimizer, num_users, user_labels, niid, times, data_load):
         self.dataset = dataset
@@ -66,12 +66,21 @@ class Scheduler:
         for glob_iter in range(self.num_glob_iters):
             print("-------------Round number: ",glob_iter, " -------------")
             for user in self.users:
-                user.train(self.server)
+                user.train(self.server, glob_iter)
             if self.async_process == False:
                 self.server.clear_update_cache()
             self.evaluate()
         self.save_results()
         self.server.save_model()
+        self.save_loss_log()
+    
+    def save_loss_log(self):
+        for user in self.users:
+            loss_log = user.loss_log
+            name=range(21)
+            dataframe = pd.DataFrame(columns=name, data=loss_log)
+            fileName = "./logs/"+user.id+'.csv'
+            dataframe.to_csv(fileName, index=False, sep=',')
     
     def evaluate(self):
         self.evaluate_users()

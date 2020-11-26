@@ -56,11 +56,67 @@ from Algorithms.models.model import *
 #         print(alpha)
 #         global_param.data = global_param.data.mul(alpha)
 #         print(global_param.data)
+import os
+import torch.multiprocessing as mp
+import time
+torch.manual_seed(0)
 
-def check_status():
-    return True
+def init_server(name, q):
+    print(time.time())
+    print('Run child process %s (%s)...' % (name, os.getpid()))
+    model = Net()
+    # model.share_memory()
+    q.put(model)
+    print(time.time())
+    print("Queue size is ", q.qsize())
+    # x = torch.Tensor(10).cuda()
+    # q.put(x)
+    print("send a global model")
+    time.sleep(10)
+    # print(q.get())
+    # x = torch.Tensor(10)
+    # q.put(x)
+def init_client(name, q):
+    print(time.time())
+    print('Run child process %s (%s)...' % (name, os.getpid()))
+    model = q.get()
+    print(time.time())
+    print('Get a model, ', model)
+    print("Queue size is ", q.qsize())
+    del model
 
-if check_status():
-    print("True")
-else: 
-    print("False")
+def task(name,x, q):
+    print(time.time())
+    print(x)
+    print('Run child process %s (%s)...' % (name, os.getpid()))
+    time.sleep(1)
+    y = x*2
+    print(y)
+
+def server_task(x, q):
+    x = x*2
+    print('server',x)
+
+
+if __name__=='__main__':
+    mp.set_start_method('spawn')
+    print(torch.multiprocessing.get_all_sharing_strategies())
+    print('Parent process %s.' % os.getpid())
+    children = []
+    q = mp.Queue()
+    x = torch.Tensor(1)
+    x.share_memory_()
+    server = mp.Process(target=server_task, args=(x,q))
+    for i in range(3):
+        children.append(mp.Process(target=task, args=(i,x, q)))
+    print('Process will start.')
+    server.start()
+    for client in children:
+        client.start()
+    start_time = time.time()
+    for client in children:
+        client.join()
+    server.join()
+    end_time = time.time()
+    print('time: ', end_time - start_time)
+    print('Process end.')

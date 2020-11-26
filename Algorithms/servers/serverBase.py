@@ -13,8 +13,7 @@ class Server:
         self.algorithm = algorithm
         self.test_data = test_data
         self.async_process = async_process
-        self.testloader = DataLoader(test_data, len(test_data))
-        self.model_cpoy = copy.deepcopy(list(model.parameters()))
+        # self.testloader = DataLoader(test_data, len(test_data))
         self.test_acc = 0
 
         self.status = False
@@ -25,6 +24,7 @@ class Server:
         self.users[user.id] = Object(dict(id=user.id, model=copy.deepcopy(list(user.model.parameters())),samples=user.train_data_samples))
 
     def update_parameters(self, id, new_parameters, sample_len):
+        print("Get update ", id)
         self.append_update_cache(id, new_parameters, sample_len)
         if self.async_process == True:
             self.clear_update_cache()
@@ -41,14 +41,15 @@ class Server:
         #     self.aggregate_parameters(user_data)
         self.status = False
         if len(self.update_list) != 0:
+            print("clear cache again")
             self.clear_update_cache()
     
     def test(self):
         self.model.eval()
         test_acc = 0
         for x, y in self.testloader:
-            output = self.model(x.cuda())
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+            output = self.model(x)
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         self.test_acc = test_acc*1.0 / y.shape[0]
         return test_acc, y.shape[0]
     

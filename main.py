@@ -5,12 +5,11 @@ import argparse
 import importlib
 import random
 import os
-from Algorithms.scheduler import Scheduler
+from Algorithms.multi_processing_scheduler import Scheduler
 from Algorithms.models.model import *
+import torch.multiprocessing as mp
 import torch
 torch.manual_seed(0)
-torch.cuda.set_device(0)
-can_gpu = torch.cuda.is_available()
 
 def main(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
          local_epochs, optimizer, numusers, user_labels, niid, times, data_load):
@@ -29,9 +28,9 @@ def main(dataset, algorithm, model, async_process, batch_size, learning_rate, la
                 pre_model = Net()
             else:
                 pre_model = CifarNet()
-        if can_gpu:
-            pre_model = pre_model.cuda()
-        model = pre_model, model 
+        # if can_gpu:
+        #     pre_model = pre_model.cuda()
+        model = pre_model.cpu(), model 
         scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
         scheduler.run()
         
@@ -44,6 +43,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Unsupported value encountered.')
 
 if __name__ == "__main__":
+    mp.set_start_method('forkserver', force=True)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])

@@ -19,8 +19,9 @@ class UserFAFed(User):
         self.optimizer = lamdaSGDOptimizer(self.model, lr=self.learning_rate, lamda=self.lamda)
         self.last_model = copy.deepcopy(list(model[0].parameters()))
         self.benefit = True
+        self.loss_log = []
 
-    def train(self, server):
+    def train(self, server, glob_iter):
         if self.can_train() == False:
             return False
         else: 
@@ -42,6 +43,8 @@ class UserFAFed(User):
             last_local_param.data = local_param.data.clone()
                 
         LOSS = 0
+        loss_log = [glob_iter]
+        print(self.id, " trained")
         self.model.train()
         for epoch in range(1, self.local_epochs+1):
             # iter_num = int(self.train_data_samples / self.batch_size)
@@ -51,8 +54,10 @@ class UserFAFed(User):
                 self.optimizer.zero_grad()
                 output = self.model(X)
                 loss = self.loss(output, y)
+                loss_log.append(loss.item())
                 loss.backward()
                 self.optimizer.step(global_model)
+        self.loss_log.append(loss_log)
         
         self.trained = True
         if self.check_async_update():
@@ -65,8 +70,8 @@ class UserFAFed(User):
         self.model.eval()
         test_acc = 0
         for x, y in self.testloaderfull:
-            output = self.model(x.cuda())
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+            output = self.model(x)
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         last_acc = self.test_acc
         self.test_acc = test_acc*1.0 / y.shape[0]
         if self.test_acc - last_acc >= 0:
