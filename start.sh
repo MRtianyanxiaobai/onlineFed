@@ -1,0 +1,3 @@
+#!/bin/sh
+output=`python3 main.py --dataset MNIST --model cnn --async_process True --batch_size 20 --learning_rate 0.008 --lamda 0.5 --beta 0.1 --num_global_iters 800 --local_epochs 20 --optimizer SGD --algorithm ASO --numusers 10 --user_labels 5 --niid True --times 1 --data_load fixed`
+python3 main.py --dataset MNIST --model cnn --async_process True --batch_size 20 --learning_rate 0.008 --lamda 0.5 --beta 0.1 --num_global_iters 800 --local_epochs 20 --optimizer SGD --algorithm FedAvg --numusers 10 --user_labels 5 --niid True --times 1 --data_load fixed

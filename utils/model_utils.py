@@ -161,7 +161,10 @@ def read_data_async(dataset, niid, num_users, user_labels):
         with open(test_path, 'r') as test_f:
             test_data = json.load(test_f)
         if len(train_data['users']) == num_users and train_data['niid'] == niid and train_data['user_labels'] == user_labels:
-            return train_data['users'], [] , train_data['user_data'], test_data['user_data']
+            users = train_data['users']
+            del train_data
+            del test_data
+            return users
         else:
             del train_data
             del test_data
@@ -325,10 +328,24 @@ def read_test_data_async(dataset):
     if os.path.exists(test_dir_path):
         with open(test_path, 'r') as test_f:
             dataset_test_data = json.load(test_f)
-        for test in dataset_test_data['user_data']:
-            test_data.extend(test)
+        for user_test in dataset_test_data['user_data'].values():
+            X_test, y_test = user_test['x'], user_test['y']
+            if(dataset == "Mnist"):
+                X_test, y_test = user_test['x'], user_test['y']
+                X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
+                y_test = torch.Tensor(y_test).type(torch.int64)
+            elif(dataset == "Cifar10"):
+                X_test, y_test = user_test['x'], user_test['y']
+                X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS_CIFAR, IMAGE_SIZE_CIFAR, IMAGE_SIZE_CIFAR).type(torch.float32)
+                y_test = torch.Tensor(y_test).type(torch.int64)
+            else:
+                X_test = torch.Tensor(X_test).type(torch.float32)
+                y_test = torch.Tensor(y_test).type(torch.int64)
+            user_test = [(x, y) for x, y in zip(X_test, y_test)]
+            test_data.extend(user_test)
     else:
         print("File Not Found, ", test_path)
+        
     return test_data
 class Object:
     def __init__(self, data):

@@ -6,7 +6,7 @@ import numpy as np
 
 class ServerASO(Server):
     def __init__(self, algorithm, model, async_process, test_data):
-        super().__init__(algorithm, model[0], async_process, test_data)
+        super().__init__(algorithm, model, async_process, test_data)
     
     def aggregate_parameters(self, user_data):
         if self.async_process == True:
@@ -18,7 +18,6 @@ class ServerASO(Server):
                 #模型聚合
                 for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
                     global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
-                    user_old_param.data = user_new_param.data.clone()
                 # # feature learning
                 # alpha = torch.exp(torch.abs(list(self.model.parameters())[0].data))
                 # for index, val in enumerate(alpha):

@@ -30,7 +30,7 @@ def main(dataset, algorithm, model, async_process, batch_size, learning_rate, la
                 pre_model = CifarNet()
         # if can_gpu:
         #     pre_model = pre_model.cuda()
-        model = pre_model.cpu(), model 
+        model = pre_model.cuda()
         scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
         scheduler.run()
         
@@ -38,12 +38,13 @@ def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+
         return False
     else:
         raise argparse.ArgumentTypeError('Unsupported value encountered.')
 
 if __name__ == "__main__":
-    mp.set_start_method('forkserver', force=True)
+    mp.set_start_method('fork', force=True)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])

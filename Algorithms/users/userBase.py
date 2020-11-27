@@ -27,6 +27,7 @@ class User:
         self.async_delay = 0.6 # 延迟更新
 
         self.test_acc = 0
+        self.test_acc_log = []
 
         self.train_data_len = len(self.train_data)
         self.test_data_len = len(self.test_data)
@@ -130,6 +131,7 @@ class User:
             output = self.model(x)
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         self.test_acc = test_acc*1.0 / y.shape[0]
+        self.test_acc_log.append(self.test_acc)
         return test_acc, y.shape[0]
     
     def train_error_and_loss(self):

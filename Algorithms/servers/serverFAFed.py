@@ -6,8 +6,8 @@ import numpy as np
 
 class ServerFAFed(Server):
     def __init__(self, algorithm, model, async_process, test_data):
-        super().__init__(algorithm, model[0], async_process, test_data)
-        self.last_model = copy.deepcopy(list(model[0].parameters()))
+        super().__init__(algorithm, model, async_process, test_data)
+        self.last_model = copy.deepcopy(list(model.parameters()))
         self.benefit = True
     
     def test(self):

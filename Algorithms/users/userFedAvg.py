@@ -9,7 +9,7 @@ from Algorithms.users.userBase import User
 
 class UserFedAvg(User):
     def __init__(self, id, train_data, test_data, model, async_process, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load):
-        super().__init__(id, train_data, test_data, model[0], async_process, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load)
+        super().__init__(id, train_data, test_data, model, async_process, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load)
 
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
@@ -17,19 +17,15 @@ class UserFedAvg(User):
     def train(self, global_model):
         LOSS = 0
         self.model.train()
-        print(self.id, ' start train')
-        # for p, new_param in zip(self.model.parameters(), global_model):
-        #     p.data = new_param.data.clone()
-        print(self.id, ' is trainning')
+        for p, new_param in zip(self.model.parameters(), global_model):
+            p.data = new_param.data.clone()
         for epoch in range(1, self.local_epochs+1):
             self.model.train()
             X, y = self.get_next_train_batch()
             self.optimizer.zero_grad()
             output = self.model(X)
             loss = self.loss(output, y)
-            
             loss.backward()
-            print(self.id, 'is', epoch)
             self.optimizer.step()
         self.trained = True
 

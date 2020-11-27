@@ -5,16 +5,16 @@ import copy
 from torch.utils.data import DataLoader
 
 from utils.model_utils import Object
-can_gpu = torch.cuda.is_available()
 
 class Server:
     def __init__(self, algorithm, model, async_process, test_data):
-        self.model = copy.deepcopy(model)
+        self.model = model
         self.algorithm = algorithm
         self.test_data = test_data
         self.async_process = async_process
-        # self.testloader = DataLoader(test_data, len(test_data))
+        self.testloader = DataLoader(test_data, len(test_data))
         self.test_acc = 0
+        self.test_acc_log = []
 
         self.status = False
         self.update_list = []
@@ -24,13 +24,16 @@ class Server:
         self.users[user.id] = Object(dict(id=user.id, model=copy.deepcopy(list(user.model.parameters())),samples=user.train_data_samples))
 
     def update_parameters(self, id, new_parameters, sample_len):
-        print("Get update ", id)
         self.append_update_cache(id, new_parameters, sample_len)
-        if self.async_process == True:
+        if self.async_process == True and len(self.update_list) != 0:
             self.clear_update_cache()
     
     def append_update_cache(self, id, new_parameters, samples_len):
-        self.update_list.append(Object(dict(id=id, model=new_parameters, samples=samples_len)))
+        if id in self.users:
+            self.update_list.append(Object(dict(id=id, model=new_parameters, samples=samples_len)))
+        else:
+            self.users[id] = Object(dict(id=id, model=new_parameters,samples=samples_len))
+            print('append user, ', id)
 
     def clear_update_cache(self):
         cache = self.update_list[:]
@@ -51,6 +54,7 @@ class Server:
             output = self.model(x)
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         self.test_acc = test_acc*1.0 / y.shape[0]
+        self.test_acc_log.append(self.test_acc)
         return test_acc, y.shape[0]
     
     def save_model(self):

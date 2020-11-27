@@ -10,11 +10,8 @@ from Algorithms.users.userBase import User
 
 class UserFAFed(User):
     def __init__(self, id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load):
-        super().__init__(id, train_data, test_data, model[0], async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
-        if(model[1] == "Mclr_CrossEntropy"):
-            self.loss = nn.CrossEntropyLoss()
-        else:
-            self.loss = nn.NLLLoss()
+        super().__init__(id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+        self.loss = nn.CrossEntropyLoss()
         # self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
         self.optimizer = lamdaSGDOptimizer(self.model, lr=self.learning_rate, lamda=self.lamda)
         self.last_model = copy.deepcopy(list(model[0].parameters()))
