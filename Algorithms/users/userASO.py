@@ -30,14 +30,17 @@ class UserASO(User):
 
     def train(self, global_model):
         self.model.train()
+        # loss_log = []
         for epoch in range(1, self.local_epochs+1):
             self.model.train()
             X, y = self.get_next_train_batch()
             self.optimizer.zero_grad()
             output = self.model(X)
             loss = self.loss(output, y)
+            # loss_log.append(loss.item())
             loss.backward()
             self.optimizer.step(global_model)
         self.trained = True
+        # self.loss_log.append(loss_log)
 
 

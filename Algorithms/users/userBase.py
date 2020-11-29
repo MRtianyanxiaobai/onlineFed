@@ -28,6 +28,7 @@ class User:
 
         self.test_acc = 0
         self.test_acc_log = []
+        self.loss_log = []
 
         self.train_data_len = len(self.train_data)
         self.test_data_len = len(self.test_data)
@@ -44,19 +45,15 @@ class User:
         if train_samples < self.train_data_len:
             self.train_data_samples = train_samples
             self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size)
-            self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
         else:
             self.train_data_samples = self.train_data_len
             self.trainloader = DataLoader(self.train_data[:self.train_data_samples], self.batch_size)
-            self.trainloaderfull = DataLoader(self.train_data[:self.train_data_samples], self.train_data_samples)
         if test_samples < self.test_data_len:
             self.test_data_samples = test_samples
             self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
-            self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
         else:
             self.test_data_samples = self.test_data_len
             self.testloader = DataLoader(self.test_data[:self.test_data_samples], self.batch_size)
-            self.testloaderfull = DataLoader(self.test_data[:self.test_data_samples], self.test_data_samples)
         # self.iter_trainloader = iter(self.trainloader)
         # self.iter_testloader = iter(self.testloader)
     
@@ -67,6 +64,7 @@ class User:
             print("new iter trainloader")
             self.iter_trainloader = iter(self.trainloader)
             (X, y) = next(self.iter_trainloader)
+        X, y = X.cuda(), y.cuda()
         return (X, y)
     
     def get_next_test_batch(self):
@@ -75,6 +73,7 @@ class User:
         except StopIteration:
             self.iter_testloader = iter(self.testloader)
             (X, y) = next(self.iter_testloader)
+        X, y = X.cuda(), y.cuda()
         return (X, y)
     
     def get_grads(self):
@@ -127,20 +126,35 @@ class User:
     def test(self):
         self.model.eval()
         test_acc = 0
-        for x, y in self.testloaderfull:
-            output = self.model(x)
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
-        self.test_acc = test_acc*1.0 / y.shape[0]
+        for i, (x, y) in enumerate(self.testloader):
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+        self.test_acc = test_acc*1.0/self.test_data_samples
         self.test_acc_log.append(self.test_acc)
-        return test_acc, y.shape[0]
+        return test_acc, self.test_data_samples
     
     def train_error_and_loss(self):
         self.model.eval()
         train_acc = 0
         loss = 0
-        for x, y in self.trainloaderfull:
-            output = self.model(x)
-            train_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+        for i, (x, y) in enumerate(self.trainloader):
+            output = self.model(x.cuda())
+            train_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
             loss += self.loss(output, y)
         print(self.id, "loss ", loss.item())
         return train_acc, loss.item() , self.train_data_samples
+    
+    def save_model(self):
+        model_path = os.path.join("models")
+        if not os.path.exists(model_path):
+            os.makedirs(model_path)
+        torch.save(self.model.state_dict(), os.path.join(model_path, self.id + ".pt"))
+
+    def load_model(self, name):
+        model_path = os.path.join("models", name + ".pt")
+        assert (os.path.exists(model_path))
+        model = torch.load(model_path)
+        return model.values()
+
+    def model_exists(self, name):
+        return os.path.exists(os.path.join("models", name + ".pt"))

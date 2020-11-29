@@ -1,50 +1,9 @@
-#!/usr/bin/env python
-import matplotlib.pyplot as plt
-import numpy as np
 import argparse
-import importlib
-import random
-import os
-from Algorithms.multi_processing_scheduler import Scheduler
-from Algorithms.models.model import *
-import torch.multiprocessing as mp
-import torch
-torch.manual_seed(0)
-
-def main(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
-         local_epochs, optimizer, numusers, user_labels, niid, times, data_load):
-    print(async_process)
-    for i in range(times):
-        print("---------------Running time:------------",i)
-        # Generate model
-        if(model == "mclr"):
-            if(dataset == "MNIST"):
-                pre_model = Mclr_Logistic()
-            else:
-                pre_model = Mclr_Logistic(60,10)
-                
-        if(model == "cnn"):
-            if(dataset == "MNIST"):
-                pre_model = Net()
-            else:
-                pre_model = CifarNet()
-        # if can_gpu:
-        #     pre_model = pre_model.cuda()
-        model = pre_model
-        scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
-        scheduler.run()
-        
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Unsupported value encountered.')
+from utils.model_utils import read_data_async
+def main(dataset, num_users, user_labels, niid):
+    read_data_async(dataset, niid, num_users, user_labels)
 
 if __name__ == "__main__":
-    mp.set_start_method('fork', force=True)
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])
@@ -78,19 +37,7 @@ if __name__ == "__main__":
 
     main(
         dataset=args.dataset,
-        algorithm = args.algorithm,
-        model=args.model,
-        async_process=args.async_process,
-        batch_size=args.batch_size,
-        learning_rate=args.learning_rate,
-        lamda = args.lamda,
-        beta = args.beta,
-        num_glob_iters=args.num_global_iters,
-        local_epochs=args.local_epochs,
-        optimizer= args.optimizer,
         numusers = args.numusers,
         user_labels = args.user_labels,
         niid = args.niid,
-        times = args.times,
-        data_load = args.data_load
         )

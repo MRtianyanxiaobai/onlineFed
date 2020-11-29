@@ -12,13 +12,11 @@ class UserFAFed(User):
     def __init__(self, id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load):
         super().__init__(id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
         self.loss = nn.CrossEntropyLoss()
-        # self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
         self.optimizer = lamdaSGDOptimizer(self.model, lr=self.learning_rate, lamda=self.lamda)
-        self.last_model = copy.deepcopy(list(model[0].parameters()))
+        self.last_model = copy.deepcopy(list(model.parameters()))
         self.benefit = True
-        self.loss_log = []
 
-    def train(self, server, glob_iter):
+    def run(self, server, glob_iter):
         if self.can_train() == False:
             return False
         else: 
@@ -39,40 +37,39 @@ class UserFAFed(User):
                 local_param.data = local_param.data + self.beta*distance
             last_local_param.data = local_param.data.clone()
                 
-        LOSS = 0
-        loss_log = [glob_iter]
-        print(self.id, " trained")
-        self.model.train()
-        for epoch in range(1, self.local_epochs+1):
-            # iter_num = int(self.train_data_samples / self.batch_size)
-            # for i in range(iter_num):
-                self.model.train()
-                X, y = self.get_next_train_batch()
-                self.optimizer.zero_grad()
-                output = self.model(X)
-                loss = self.loss(output, y)
-                loss_log.append(loss.item())
-                loss.backward()
-                self.optimizer.step(global_model)
-        self.loss_log.append(loss_log)
-        
-        self.trained = True
+        self.train(global_model)
         if self.check_async_update():
             server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
             self.trained = False
 
         return LOSS
+    def train(self, global_model):
+        LOSS = 0
+        # loss_log = []
+        self.model.train()
+        for epoch in range(1, self.local_epochs+1):
+            self.model.train()
+            X, y = self.get_next_train_batch()
+            self.optimizer.zero_grad()
+            output = self.model(X)
+            loss = self.loss(output, y)
+            # loss_log.append(loss.item())
+            loss.backward()
+            self.optimizer.step(global_model)
+        # self.loss_log.append(loss_log)
+        self.trained = True
     
     def test(self):
         self.model.eval()
         test_acc = 0
-        for x, y in self.testloaderfull:
-            output = self.model(x)
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+        for i, (x, y) in enumerate(self.testloader):
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
         last_acc = self.test_acc
-        self.test_acc = test_acc*1.0 / y.shape[0]
+        self.test_acc = test_acc*1.0 / self.test_data_samples
+        self.test_acc_log.append(self.test_acc)
         if self.test_acc - last_acc >= 0:
             self.benefit = True
         else:
             self.benefit = False
-        return test_acc, y.shape[0]
+        return test_acc, self.test_data_samples

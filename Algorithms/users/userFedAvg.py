@@ -16,6 +16,7 @@ class UserFedAvg(User):
     
     def train(self, global_model):
         LOSS = 0
+        # loss_log = []
         self.model.train()
         for p, new_param in zip(self.model.parameters(), global_model):
             p.data = new_param.data.clone()
@@ -25,10 +26,11 @@ class UserFedAvg(User):
             self.optimizer.zero_grad()
             output = self.model(X)
             loss = self.loss(output, y)
+            # loss_log.append(loss.item())
             loss.backward()
             self.optimizer.step()
         self.trained = True
-
+        # self.loss_log.append(loss_log)
         return LOSS
 
     def run(self, server):

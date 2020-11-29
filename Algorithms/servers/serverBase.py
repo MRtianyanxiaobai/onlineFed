@@ -7,12 +7,13 @@ from torch.utils.data import DataLoader
 from utils.model_utils import Object
 
 class Server:
-    def __init__(self, algorithm, model, async_process, test_data):
-        self.model = model
+    def __init__(self, algorithm, model, async_process, test_data, batch_size):
+        self.model = copy.deepcopy(model)
         self.algorithm = algorithm
+        self.batch_size = batch_size
         self.test_data = test_data
         self.async_process = async_process
-        self.testloader = DataLoader(test_data, len(test_data))
+        self.testloader = DataLoader(test_data, batch_size)
         self.test_acc = 0
         self.test_acc_log = []
 
@@ -20,8 +21,8 @@ class Server:
         self.update_list = []
         self.users = {}
 
-    def append_user(self, user):
-        self.users[user.id] = Object(dict(id=user.id, model=copy.deepcopy(list(user.model.parameters())),samples=user.train_data_samples))
+    def append_user(self, id, samples):
+        self.users[id] = Object(dict(id=id, model=copy.deepcopy(list(self.model.parameters())),samples=samples))
 
     def update_parameters(self, id, new_parameters, sample_len):
         self.append_update_cache(id, new_parameters, sample_len)
@@ -50,23 +51,25 @@ class Server:
     def test(self):
         self.model.eval()
         test_acc = 0
-        for x, y in self.testloader:
-            output = self.model(x)
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
-        self.test_acc = test_acc*1.0 / y.shape[0]
+        for i, (x, y) in enumerate(self.testloader):
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+        self.test_acc = test_acc*1.0 / len(self.test_data)
         self.test_acc_log.append(self.test_acc)
-        return test_acc, y.shape[0]
+        return test_acc, len(self.test_data)
     
     def save_model(self):
         model_path = os.path.join("models")
         if not os.path.exists(model_path):
             os.makedirs(model_path)
-        torch.save(self.model, os.path.join(model_path, "server" + ".pt"))
+        torch.save(self.model.state_dict(), os.path.join(model_path, 'server.pt'))
+        # torch.save(self.model, os.path.join(model_path, "server" + ".pt"))
 
-    def load_model(self):
-        model_path = os.path.join("models", "server" + ".pt")
+    def load_model(self, name):
+        model_path = os.path.join("models", name + ".pt")
         assert (os.path.exists(model_path))
-        self.model = torch.load(model_path)
+        model = torch.load(model_path)
+        return model.values()
 
-    def model_exists(self):
-        return os.path.exists(os.path.join("models", "server" + ".pt"))
+    def model_exists(self, name):
+        return os.path.exists(os.path.join("models", name + ".pt"))

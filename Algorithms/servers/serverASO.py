@@ -5,8 +5,8 @@ from Algorithms.servers.serverBase import Server
 import numpy as np
 
 class ServerASO(Server):
-    def __init__(self, algorithm, model, async_process, test_data):
-        super().__init__(algorithm, model, async_process, test_data)
+    def __init__(self, algorithm, model, async_process, test_data, batch_size):
+        super().__init__(algorithm, model, async_process, test_data, batch_size)
     
     def aggregate_parameters(self, user_data):
         if self.async_process == True:

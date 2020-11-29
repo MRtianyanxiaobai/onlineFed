@@ -5,24 +5,25 @@ from Algorithms.servers.serverBase import Server
 import numpy as np
 
 class ServerFAFed(Server):
-    def __init__(self, algorithm, model, async_process, test_data):
-        super().__init__(algorithm, model, async_process, test_data)
+    def __init__(self, algorithm, model, async_process, test_data, batch_size):
+        super().__init__(algorithm, model, async_process, test_data, batch_size)
         self.last_model = copy.deepcopy(list(model.parameters()))
         self.benefit = True
     
     def test(self):
         self.model.eval()
         test_acc = 0
-        for x, y in self.testloader:
-            output = self.model(x)
-            test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+        for i, (x, y) in enumerate(self.testloader):
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
         last_acc = self.test_acc
-        self.test_acc = test_acc*1.0 / y.shape[0]
+        self.test_acc = test_acc*1.0 / len(self.test_data)
+        self.test_acc_log.append(self.test_acc)
         if self.test_acc - last_acc >= 0:
             self.benefit = True
         else:
             self.benefit = False
-        return test_acc, y.shape[0]
+        return test_acc, len(self.test_data)
     
     def aggregate_parameters(self, user_data):
         if self.async_process == True:
@@ -43,9 +44,9 @@ class ServerFAFed(Server):
                     elif self.benefit == False and similarity <= 0:
                         global_param.data = global_param.data + 1.1*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
                     else:
-                        global_param.data = global_param.data + 0.99*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
+                        global_param.data = global_param.data + 0.9*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
                     user_old_param.data = user_new_param.data.clone()
-                self.test()
+                # self.test()
                 # for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
                 #     global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
                 #     user_old_param.data = user_new_param.data.clone()
