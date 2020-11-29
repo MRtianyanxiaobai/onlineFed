@@ -5,43 +5,71 @@ import os
 import json
 import copy
 from torch.utils.data import DataLoader
-from Algorithms.optimizers.optimizer import ASOOptimizer
+from Algorithms.optimizers.optimizer import lamdaSGDOptimizer
 from Algorithms.users.userBase import User
 
 class UserFAFed(User):
-    def __init__(self, id, train_data, test_data, model, batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load):
-        super().__init__(id, train_data, test_data, model[0], batch_size, learning_rate, beta, lamda, local_epochs, optimizer, data_load)
-        if(model[1] == "Mclr_CrossEntropy"):
-            self.loss = nn.CrossEntropyLoss()
-        else:
-            self.loss = nn.NLLLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
-        self.model_copy = copy.deepcopy(list(model[0].parameters()))
+    def __init__(self, id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load):
+        super().__init__(id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+        self.loss = nn.CrossEntropyLoss()
+        self.optimizer = lamdaSGDOptimizer(self.model, lr=self.learning_rate, lamda=self.lamda)
+        self.last_model = copy.deepcopy(list(model.parameters()))
+        self.benefit = True
 
-    def train(self, new_data_num, server):
-        LOSS = 0
-        self.model.train()
+    def run(self, server, glob_iter):
+        if self.can_train() == False:
+            return False
+        else: 
+            if self.trained == True:
+                server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+                self.trained = False
+        
         global_model = self.get_global_parameters(server)
-        self.model_copy = copy.deepcopy(list(self.model.parameters()))
-        for p, new_param in zip(self.model.parameters(), global_model):
-            p.data = new_param.clone()
-        updated_stats = self.test()
-        updated_acc = updated_stats[0]*1.0/updated_stats[1]
-        if updated_acc < self.test_acc:
-            for updated_param, old_param in zip(self.model.parameters(), self.model_copy):
-                updated_param.data = old_param.data + 0.5*(updated_param.data - old_param.data)
-        self.update_data_loader(new_data_num)
+        for global_param, local_param, last_local_param in zip(global_model, self.model.parameters(), self.last_model):
+            distance = global_param.data - local_param.data
+            local_distance = local_param.data - last_local_param.data
+            distance_vec = torch.flatten(distance)
+            local_distance_vec = torch.flatten(local_distance)
+            similarity = torch.cosine_similarity(local_distance_vec, distance_vec, dim=0).item()
+            if similarity >= 0:
+                local_param.data = local_param.data + distance
+            else:
+                local_param.data = local_param.data + self.beta*distance
+            last_local_param.data = local_param.data.clone()
+                
+        self.train(global_model)
+        if self.check_async_update():
+            server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+            self.trained = False
+
+        return LOSS
+    def train(self, global_model):
+        LOSS = 0
+        # loss_log = []
+        self.model.train()
         for epoch in range(1, self.local_epochs+1):
             self.model.train()
             X, y = self.get_next_train_batch()
             self.optimizer.zero_grad()
             output = self.model(X)
             loss = self.loss(output, y)
+            # loss_log.append(loss.item())
             loss.backward()
-            self.optimizer.step()
-        
-        update_flag = torch.randn(1)
-        if update_flag < 0.95:
-            server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
-
-        return LOSS
+            self.optimizer.step(global_model)
+        # self.loss_log.append(loss_log)
+        self.trained = True
+    
+    def test(self):
+        self.model.eval()
+        test_acc = 0
+        for i, (x, y) in enumerate(self.testloader):
+            output = self.model(x.cuda())
+            test_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
+        last_acc = self.test_acc
+        self.test_acc = test_acc*1.0 / self.test_data_samples
+        self.test_acc_log.append(self.test_acc)
+        if self.test_acc - last_acc >= 0:
+            self.benefit = True
+        else:
+            self.benefit = False
+        return test_acc, self.test_data_samples

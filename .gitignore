@@ -1,4 +1,7 @@
 results
+models
 .vscode
 **/__pycache__
-data/**/data
+data
+history
+.DS_Store

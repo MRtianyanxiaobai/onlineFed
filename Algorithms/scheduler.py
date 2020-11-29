@@ -15,13 +15,16 @@ import pandas as pd
 torch.manual_seed(0)
 
 
-class Scheduler:
-    def __init__(self, dataset,algorithm, model, batch_size, learning_rate, lamda, beta, num_glob_iters,
-                 local_epochs, optimizer, num_users, times, data_load):
+class SingleScheduler:
+    def __init__(self, dataset,algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
+                 local_epochs, optimizer, num_users, user_labels, niid, times, data_load):
         self.dataset = dataset
+        self.model = copy.deepcopy(model)
         self.algorithm = algorithm
+        self.optimizer = optimizer
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+        self.async_process = async_process
         self.lamda = lamda
         self.beta = beta
         self.times = times
@@ -29,50 +32,55 @@ class Scheduler:
         self.num_users = num_users
         self.num_glob_iters = num_glob_iters
         self.local_epochs = local_epochs
+        self.user_labels = user_labels
+        self.niid = niid
         self.users = []
         self.avg_local_acc = []
         self.avg_local_train_acc = []
         self.avg_local_train_loss = []
         self.server_acc = []
-
-        data = read_data(dataset)
-        total_users = len(data[0])
-        self.num_users = min(total_users, num_users)
+        # old data split
+        data = read_data(dataset, niid, num_users, user_labels)
+        self.num_users = num_users
         test_data = []
         for i in range(self.num_users):
             id, train, test = read_user_data(i, data, dataset)
             if algorithm == 'FedAvg':
-                user = UserFedAvg(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+                user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'ASO':
-                user = UserASO(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+                user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'FAFed':
-                user = UserFAFed(id, train, test, model, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+                user = UserFAFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
         if algorithm == 'FedAvg':
-            self.server = ServerFedAvg(algorithm, model, test_data)
+            self.server = ServerFedAvg(algorithm, model, async_process, test_data)
         if algorithm == 'ASO':
-            self.server = ServerASO(algorithm, model, test_data)
+            self.server = ServerASO(algorithm, model, async_process, test_data)
         if algorithm == 'FAFed':
-            self.server = ServerFAFed(algorithm, model, test_data)
+            self.server = ServerFAFed(algorithm, model, async_process, test_data)
         for user in self.users:
             self.server.append_user(user)
     
     def run(self):
         for glob_iter in range(self.num_glob_iters):
             print("-------------Round number: ",glob_iter, " -------------")
-            new_data_flag = torch.rand(self.num_users)
-            activation_users = []
-            new_data_num = []
-            for index, val in enumerate(new_data_flag):
-                if val < 0.5:
-                    activation_users.append(self.users[index])
-                    new_data_num.append(int(val*10))
-            for user, new_data in zip(activation_users, new_data_num):
-                user.train(new_data, self.server)
+            for user in self.users:
+                user.train(self.server, glob_iter)
+            if self.async_process == False:
+                self.server.clear_update_cache()
             self.evaluate()
         self.save_results()
         self.server.save_model()
+        self.save_loss_log()
+    
+    def save_loss_log(self):
+        for user in self.users:
+            loss_log = user.loss_log
+            name=range(21)
+            dataframe = pd.DataFrame(columns=name, data=loss_log)
+            fileName = "./logs/"+user.id+'.csv'
+            dataframe.to_csv(fileName, index=False, sep=',')
     
     def evaluate(self):
         self.evaluate_users()
@@ -124,8 +132,16 @@ class Scheduler:
         return ids, num_samples, tot_correct, losses
     
     def save_results(self):
-        alg = self.dataset + "_" + self.algorithm
-        alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + self.data_load
+        alg = self.dataset + "_" + self.algorithm + "_" + self.model[1] + "_" + self.optimizer
+        if self.async_process == True:
+            alg = alg + "_async"
+        else:
+            alg = alg + "_sync"
+        if self.niid == True:
+            alg = alg + "_niid"
+        else:
+            alg = alg + "_iid"
+        alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.user_labels) + "l" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + str(self.num_glob_iters) + "ep" + "_" + self.data_load
         alg = alg + "_" + str(self.times)
         if (len(self.avg_local_acc) != 0 &  len(self.avg_local_train_acc) & len(self.avg_local_train_loss)) :
             dictData={}
