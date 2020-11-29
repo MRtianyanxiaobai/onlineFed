@@ -42,7 +42,7 @@ from Algorithms.models.model import *
 
 # print(selected)
 
-# model = Mclr_Logistic()
+model = Mclr_Logistic()
 # alpha = torch.exp(torch.abs(list(model.parameters())[0].data))
 # for index, val in enumerate(alpha):
 #     sumCol = torch.sum(val)
@@ -57,5 +57,7 @@ from Algorithms.models.model import *
 #         global_param.data = global_param.data.mul(alpha)
 #         print(global_param.data)
 torch.cuda.set_device(0)
-use_gpu = torch.cuda.is_available()
-print(use_gpu)
+# model = Net()
+model = model.cuda()
+while True:
+    model.train()
