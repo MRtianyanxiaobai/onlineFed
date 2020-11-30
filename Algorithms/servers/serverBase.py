@@ -58,17 +58,17 @@ class Server:
         self.test_acc_log.append(self.test_acc)
         return test_acc, len(self.test_data)
     
-    def save_model(self):
+    def save_model(self, name="server"):
         model_path = os.path.join("models")
         if not os.path.exists(model_path):
             os.makedirs(model_path)
-        torch.save(self.model.state_dict(), os.path.join(model_path, 'server.pt'))
+        torch.save(self.model.state_dict(), os.path.join(model_path, name+'.pt'))
         # torch.save(self.model, os.path.join(model_path, "server" + ".pt"))
 
-    def load_model(self, name):
-        model_path = os.path.join("models", name + ".pt")
+    def load_model(self, name="server"):
+        model_path = os.path.join("models")
         assert (os.path.exists(model_path))
-        model = torch.load(model_path)
+        model = torch.load(os.path.join("models", name+".pt"))
         return model.values()
 
     def model_exists(self, name):

@@ -3,6 +3,15 @@ from utils.model_utils import read_data_async
 def main(dataset, num_users, user_labels, niid):
     read_data_async(dataset, niid, num_users, user_labels)
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Unsupported value encountered.')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
@@ -23,21 +32,9 @@ if __name__ == "__main__":
     parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
     args = parser.parse_args()
 
-    print("=" * 80)
-    print("Summary of training process:")
-    print("Algorithm: {}".format(args.algorithm))
-    print("Batch size: {}".format(args.batch_size))
-    print("Learing rate       : {}".format(args.learning_rate))
-    print("Subset of users      : {}".format(args.numusers))
-    print("Number of global rounds       : {}".format(args.num_global_iters))
-    print("Number of local rounds       : {}".format(args.local_epochs))
-    print("Dataset       : {}".format(args.dataset))
-    print("Local Model       : {}".format(args.model))
-    print("=" * 80)
-
     main(
         dataset=args.dataset,
-        numusers = args.numusers,
+        num_users = args.numusers,
         user_labels = args.user_labels,
         niid = args.niid,
         )

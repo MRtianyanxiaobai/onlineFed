@@ -3,6 +3,7 @@ import os
 import argparse
 import torch
 import time
+import gevent
 from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvg import UserFedAvg
 from Algorithms.users.userFAFed import UserFAFed
@@ -15,6 +16,7 @@ def main(dataset, model, algorithm, async_process, batch_size, learning_rate, la
     rpcController = zerorpc.Client()
     rpcController.connect('tcp://127.0.0.1:8888')
     id, train, test = read_user_data_async(index, dataset)
+    rpcController.add_client(id, 0)
     if(model == "mclr"):
         if(dataset == "MNIST"):
             model = Mclr_Logistic()
@@ -26,7 +28,7 @@ def main(dataset, model, algorithm, async_process, batch_size, learning_rate, la
         else:
             model = CifarNet()
     model = model.cuda()
-    pre_model = torch.load(os.path.join('models', 'server.pt'))
+    pre_model = torch.load(os.path.join('models', 'server_'+id+'.pt'))
     model.load_state_dict(pre_model)
     if algorithm == 'FedAvg':
         user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
@@ -34,32 +36,34 @@ def main(dataset, model, algorithm, async_process, batch_size, learning_rate, la
         user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
     if algorithm == 'FAFed':
         user = UserFAFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
-    rpcController.add_client('0', user.id, user.train_data_samples)
     print(user.id, ' start !')
     user.save_model()
+
+
     for i in range(num_glob_iters):
         if user.can_train() is False:
             continue
         else:
             if user.check_async_update():
                 rpcController.client_update(user.id, user.train_data_samples)
-                user.trained  =False
-        time_offset = time.sleep(torch.randint(10, 100, (1,)).item() / 1000)
-        if rpcController.get_model(user.id):             
-            global_model = user.load_model('server')
-            rpcController.close_lock(user.id)
-        else:
-            global_model = user.model.parameters()
+                user.trained = False
+        
+        time.sleep(torch.randint(10, 100, (1,)).item() / 1000)   
+        rpcController.get_model(user.id)         
+        global_model = user.load_model('server_'+user.id)
         user.train(global_model)
+        user.save_model()
+        
         if user.check_async_update():
             rpcController.client_update(user.id, user.train_data_samples)
-            user.trained  =False
-        user.save_model()
+            user.trained = False
         if i % 10 == 0:
             user.test()
             print(user.id, ' test_acc is', user.test_acc, ' in ', i)
         else:
             print(user.id, ' in ', i)
+
+    
     rpcController.close_client(user.id)
     print(user.id, ' is over.')
     dictData = {}

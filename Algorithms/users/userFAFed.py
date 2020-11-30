@@ -24,7 +24,15 @@ class UserFAFed(User):
                 server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
                 self.trained = False
         
-        global_model = self.get_global_parameters(server)
+        global_model = self.get_global_parameters(server)            
+        self.train(global_model)
+        
+        if self.check_async_update():
+            server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+            self.trained = False
+
+        return
+    def train(self, global_model):
         for global_param, local_param, last_local_param in zip(global_model, self.model.parameters(), self.last_model):
             distance = global_param.data - local_param.data
             local_distance = local_param.data - last_local_param.data
@@ -36,15 +44,6 @@ class UserFAFed(User):
             else:
                 local_param.data = local_param.data + self.beta*distance
             last_local_param.data = local_param.data.clone()
-                
-        self.train(global_model)
-        if self.check_async_update():
-            server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
-            self.trained = False
-
-        return LOSS
-    def train(self, global_model):
-        LOSS = 0
         # loss_log = []
         self.model.train()
         for epoch in range(1, self.local_epochs+1):

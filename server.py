@@ -2,6 +2,7 @@ import zerorpc
 import os
 import argparse
 import torch
+import gevent
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
 from Algorithms.servers.serverFAFed import ServerFAFed
@@ -11,6 +12,7 @@ import pandas as pd
 torch.manual_seed(0)
 class RpcController(object):
     def __init__(self, dataset, algorithm, model, num_users, async_process, batch_size):
+        self.dataset = dataset
         test_data = read_test_data_async(dataset)
         if(model == "mclr"):
             if(dataset == "MNIST"):
@@ -36,17 +38,19 @@ class RpcController(object):
         self.server.save_model()
         self.client_list = {}
         self.client_counter = 0
-        self.read = True
-        self.write = False
         self.aggerate_counter = 0
+        # self.read = {}
+        # self.write = False
+        # self.start_train = False
     def client_update(self, id, samples_len):
         try:
-            userModel = self.server.load_model(id)
+            # if self.start_train is False:
+            #     print('not start')
+            #     return False
+            userModel = self.server.load_model("client_"+id)
             self.server.update_parameters(id, userModel, samples_len)
-            if self.read is False:
-                self.write = True
-                self.server.save_model()
-                self.write = False
+
+            self.server.save_model()
             self.aggerate_counter = self.aggerate_counter + 1
             if self.aggerate_counter % 10 == 0:
                 self.server.test()
@@ -58,16 +62,14 @@ class RpcController(object):
             print('client update error', e)
             return False
 
-    def add_client(self, ip, id, samples):
+    def add_client(self, id, samples):
         try:
-            # client = zerorpc.Client()
-            # client.connect(ip)
-            # self.client_list[id] = client
+            # self.read[id] = False
+            self.server.save_model("server_"+id)
             self.server.append_user(id, samples)
             self.client_counter = self.client_counter + 1
-            if self.client_counter == self.nun_users:
-                self.read = False
-                self.write = False
+            # if self.client_counter == self.nun_users:
+            #     self.start_train = True
             return True
         except Exception as e:
             print('add client error', e)
@@ -76,21 +78,16 @@ class RpcController(object):
     def get_model(self, id):
         for global_param, user_init in zip(self.server.model.parameters(), self.server.users[id].model):
             user_init.data = global_param.data.clone()
-        if self.write is False:
-            self.read = True
-        return self.write
-    
-    def close_lock(self, id):
-        self.read = False
-
+        self.server.save_model("server_"+id)
+        return True
 
     def close_client(self, id):
         self.client_counter = self.client_counter - 1
         if self.client_counter == 0:
             dictData = {}
-            dictData['server_test_acc'] = server.test_acc_log[:]
+            dictData['server_test_acc'] = self.server.test_acc_log[:]
             dataFrame = pd.DataFrame(dictData)
-            filename = './results/'+algorithm+'_'+dataset+'_'+'.csv'
+            filename = './results/'+self.server.algorithm+'_'+self.dataset+'_'+'.csv'
             dataFrame.to_csv(filename, index=False, sep=',')
             print('Server Over !')
 
@@ -101,7 +98,10 @@ def main(dataset, algorithm, model, num_users, async_process, batch_size):
          
     server = zerorpc.Server(RpcController(dataset, algorithm, model, num_users, async_process, batch_size))
     server.bind('tcp://0.0.0.0:8888')
+    # publisher = zerorpc.Publisher()
+    # publisher.bind('tcp://0.0.0.0:8889')
     print('Server Start!')
+    # gevent.spawm(server.run)
     server.run()
 
          

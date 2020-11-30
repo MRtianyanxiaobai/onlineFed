@@ -144,11 +144,12 @@ class User:
         print(self.id, "loss ", loss.item())
         return train_acc, loss.item() , self.train_data_samples
     
-    def save_model(self):
+    def save_model(self, name=0):
         model_path = os.path.join("models")
         if not os.path.exists(model_path):
             os.makedirs(model_path)
-        torch.save(self.model.state_dict(), os.path.join(model_path, self.id + ".pt"))
+        name = "client_"+self.id if name == 0 else name
+        torch.save(self.model.state_dict(), os.path.join(model_path, name + ".pt"))
 
     def load_model(self, name):
         model_path = os.path.join("models", name + ".pt")

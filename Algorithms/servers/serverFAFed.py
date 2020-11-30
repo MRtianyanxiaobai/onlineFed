@@ -33,7 +33,7 @@ class ServerFAFed(Server):
                 for user in self.users.values():
                     total_train += user.samples
                 for global_param, last_global_param, user_new_param, user_old_param in zip(self.model.parameters(), self.last_model, user_updated.model, self.users[user_updated.id].model):
-                    distance = user_new_param.data - global_param.data
+                    distance = user_new_param.data - user_old_param.data
                     global_distance = global_param.data - last_global_param.data
                     distance_vec = torch.flatten(distance)
                     global_distance_vec = torch.flatten(global_distance)
@@ -45,7 +45,6 @@ class ServerFAFed(Server):
                         global_param.data = global_param.data + 1.1*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
                     else:
                         global_param.data = global_param.data + 0.9*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
-                    user_old_param.data = user_new_param.data.clone()
                 # self.test()
                 # for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
                 #     global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
