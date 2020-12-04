@@ -130,7 +130,7 @@ def read_user_data(index,data,dataset):
     train_data = data[2][id]
     test_data = data[3][id]
     X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
-    if(dataset == "Mnist"):
+    if(dataset == "MNIST"):
         X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
         X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_train = torch.Tensor(y_train).type(torch.int64)
@@ -161,6 +161,7 @@ def read_data_async(dataset, niid, num_users, user_labels):
         with open(test_path, 'r') as test_f:
             test_data = json.load(test_f)
         if len(train_data['users']) == num_users and train_data['niid'] == niid and train_data['user_labels'] == user_labels:
+            print('Dataset is Complete !')
             users = train_data['users']
             del train_data
             del test_data
@@ -177,15 +178,16 @@ def read_data_async(dataset, niid, num_users, user_labels):
     if niid == False:
         user_labels = 10
     
-    transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     if dataset == 'Cifar10':
+        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         trainset = torchvision.datasets.CIFAR10(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.CIFAR10(root='./data', train=False,download=True, transform=transform)
     if dataset == 'MNIST':
         transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
         trainset = torchvision.datasets.MNIST(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.MNIST(root='./data', train=False,download=True, transform=transform)
-    if dataset == 'FasionMNIST':
+    if dataset == 'FashionMNIST':
+        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
         trainset = torchvision.datasets.FashionMNIST(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.FashionMNIST(root='./data', train=False,download=True, transform=transform)
 
@@ -299,7 +301,7 @@ def read_user_data_async(index,dataset):
         print('File Not Found, ', train_path)
         return 
     X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
-    if(dataset == "Mnist"):
+    if(dataset == "MNIST"):
         X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
         X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_train = torch.Tensor(y_train).type(torch.int64)
@@ -311,10 +313,11 @@ def read_user_data_async(index,dataset):
         y_train = torch.Tensor(y_train).type(torch.int64)
         X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS_CIFAR, IMAGE_SIZE_CIFAR, IMAGE_SIZE_CIFAR).type(torch.float32)
         y_test = torch.Tensor(y_test).type(torch.int64)
-    else:
-        X_train = torch.Tensor(X_train).type(torch.float32)
+    elif(dataset == "FashionMNIST"):
+        X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
+        X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_train = torch.Tensor(y_train).type(torch.int64)
-        X_test = torch.Tensor(X_test).type(torch.float32)
+        X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_test = torch.Tensor(y_test).type(torch.int64)
     
     train_data = [(x, y) for x, y in zip(X_train, y_train)]
@@ -330,7 +333,7 @@ def read_test_data_async(dataset):
             dataset_test_data = json.load(test_f)
         for user_test in dataset_test_data['user_data'].values():
             X_test, y_test = user_test['x'], user_test['y']
-            if(dataset == "Mnist"):
+            if(dataset == "MNIST"):
                 X_test, y_test = user_test['x'], user_test['y']
                 X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
                 y_test = torch.Tensor(y_test).type(torch.int64)
@@ -338,8 +341,9 @@ def read_test_data_async(dataset):
                 X_test, y_test = user_test['x'], user_test['y']
                 X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS_CIFAR, IMAGE_SIZE_CIFAR, IMAGE_SIZE_CIFAR).type(torch.float32)
                 y_test = torch.Tensor(y_test).type(torch.int64)
-            else:
-                X_test = torch.Tensor(X_test).type(torch.float32)
+            elif(dataset == "FashionMNIST"):
+                X_test, y_test = user_test['x'], user_test['y']
+                X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
                 y_test = torch.Tensor(y_test).type(torch.int64)
             user_test = [(x, y) for x, y in zip(X_test, y_test)]
             test_data.extend(user_test)

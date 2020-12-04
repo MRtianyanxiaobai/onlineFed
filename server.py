@@ -2,6 +2,7 @@ import zerorpc
 import os
 import argparse
 import torch
+import time
 import gevent
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
@@ -10,20 +11,22 @@ from utils.model_utils import read_test_data_async
 from Algorithms.models.model import *
 import pandas as pd
 torch.manual_seed(0)
+trigger = gevent.event.Event()
 class RpcController(object):
     def __init__(self, dataset, algorithm, model, num_users, async_process, batch_size):
         self.dataset = dataset
+        self.num_users = num_users
         test_data = read_test_data_async(dataset)
         if(model == "mclr"):
-            if(dataset == "MNIST"):
-                pre_model = Mclr_Logistic()
-            else:
+            if(dataset == "Cifar10"):
                 pre_model = Mclr_Logistic(60,10)
-        if(model == "cnn"):
-            if(dataset == "MNIST"):
-                pre_model = Net()
             else:
+                pre_model = Mclr_Logistic()
+        if(model == "cnn"):
+            if(dataset == "Cifar10"):
                 pre_model = CifarNet()
+            else:
+                pre_model = Net()
         pre_model = pre_model.cuda()
         pre_model.eval()
         if algorithm == 'FedAvg':
@@ -39,6 +42,7 @@ class RpcController(object):
         self.client_list = {}
         self.client_counter = 0
         self.aggerate_counter = 0
+        self.user_epoch_counter = 0
         # self.read = {}
         # self.write = False
         # self.start_train = False
@@ -68,8 +72,10 @@ class RpcController(object):
             self.server.save_model("server_"+id)
             self.server.append_user(id, samples)
             self.client_counter = self.client_counter + 1
-            # if self.client_counter == self.nun_users:
-            #     self.start_train = True
+            print('Append Client, ',id)
+            if self.client_counter == self.num_users:
+                trigger.set()
+                print("Start Training !")
             return True
         except Exception as e:
             print('add client error', e)
@@ -90,19 +96,44 @@ class RpcController(object):
             filename = './results/'+self.server.algorithm+'_'+self.dataset+'_'+'.csv'
             dataFrame.to_csv(filename, index=False, sep=',')
             print('Server Over !')
+            trigger.set()
+    
+    def close_epoch(self, id, isTrain):
+        self.user_epoch_counter = self.user_epoch_counter + 1
+        print(id, "close epoch, ", isTrain, self.user_epoch_counter, self.client_counter, self.num_users)
+        if self.user_epoch_counter == self.client_counter:
+            self.user_epoch_counter = 0
+            trigger.set()
 
-    
-    
+
+def main(dataset, algorithm, model, num_users, async_process, batch_size, num_global_iters):
+    if async_process is True:
+        server = zerorpc.Server(RpcController(dataset, algorithm, model, num_users, async_process, batch_size))
+        server.bind('tcp://0.0.0.0:8888')
+        print('Server Start!')
+        server.run()
+    else:
+        server = zerorpc.Server(RpcController(dataset, algorithm, model, num_users, async_process, batch_size))
+        server.bind('tcp://0.0.0.0:8888')
+        publisher = zerorpc.Publisher()
+        publisher.bind('tcp://0.0.0.0:8889')
+        print('Server Start!')
+        trigger.clear()
+        gevent.spawn(server.run)
+        trigger.wait()
+        publisher.ready_start(time.time())
+        time.sleep(1)
+        for i in range(num_global_iters):
+            print("Epoch ", i)
+            trigger.clear()
+            publisher.new_epoch(i, time.time())
+            trigger.wait()
+        trigger.clear()
+        publisher.complete_train(time.time())
+        trigger.wait()
         
-def main(dataset, algorithm, model, num_users, async_process, batch_size):
-         
-    server = zerorpc.Server(RpcController(dataset, algorithm, model, num_users, async_process, batch_size))
-    server.bind('tcp://0.0.0.0:8888')
-    # publisher = zerorpc.Publisher()
-    # publisher.bind('tcp://0.0.0.0:8889')
-    print('Server Start!')
-    # gevent.spawm(server.run)
-    server.run()
+    
+    
 
          
 def str2bool(v):
@@ -116,13 +147,23 @@ def str2bool(v):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
+    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FashionMNIST", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])
     parser.add_argument("--async_process", type=str2bool, default=True)
+    parser.add_argument("--batch_size", type=int, default=20)
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="Local learning rate")
+    parser.add_argument("--lamda", type=float, default=1.0, help="Regularization term")
+    parser.add_argument("--beta", type=float, default=0.001, help="Decay Coefficient")
+    parser.add_argument("--num_global_iters", type=int, default=800)
+    parser.add_argument("--local_epochs", type=int, default=20)
+    parser.add_argument("--optimizer", type=str, default="SGD")
     parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "FAFed"]) 
     parser.add_argument("--numusers", type=int, default=10, help="Number of Users per round")
-    parser.add_argument("--batch_size", type=int, default=20)
+    parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
+    parser.add_argument("--niid", type=str2bool, default=True, help="data distrabution for iid or niid")
+    parser.add_argument("--times", type=int, default=5, help="running time")
+    parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
     args = parser.parse_args()
 
-    main(dataset=args.dataset, algorithm=args.algorithm, model=args.model, num_users=args.numusers, async_process=args.async_process, batch_size=args.batch_size)
+    main(dataset=args.dataset, algorithm=args.algorithm, model=args.model, num_users=args.numusers, async_process=args.async_process, num_global_iters=args.num_global_iters, batch_size=args.batch_size)
 

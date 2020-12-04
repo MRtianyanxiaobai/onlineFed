@@ -73,6 +73,7 @@ class User:
         except StopIteration:
             self.iter_testloader = iter(self.testloader)
             (X, y) = next(self.iter_testloader)
+        print(X, y)
         X, y = X.cuda(), y.cuda()
         return (X, y)
     

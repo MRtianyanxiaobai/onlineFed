@@ -5,7 +5,7 @@ else
     Algorithm='FedAvg'
 fi
 
-Dataset='Cifar10'         # MNIST Cifar10 FashionMNIST
+Dataset='MNIST'         # MNIST Cifar10 FashionMNIST
 Model='cnn'             # cnn mclr
 Async_process='True'    # True False
 # Algorithm=      # FedAvg ASO FAFed
@@ -23,11 +23,11 @@ Data_load='fixed'      # fixed flow
 
 output=`python3 check_dataset.py --dataset=$Dataset --numusers=$Num_users --user_labels=$User_labels --niid=$Niid`
 # gnome-terminal -- 
-# tmux new -s server \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 server.py --dataset='$Dataset' --model='$Model' --numusers='$Num_users' --async_process='$Async_process' --algorithm='$Algorithm' --batch_size='$Batch_size C-m \;
+tmux new -s server \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 server.py --dataset='$Dataset' --model='$Model' --numusers='$Num_users' --async_process='$Async_process' --algorithm='$Algorithm' --batch_size='$Batch_size C-m \; send-keys 'exit' C-m \;
 
-# index=0
-# while [ "$index" -lt "$Num_users" ]; do
-#     # gnome-terminal -- 
-#     tmux new -s client$index \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 client.py --dataset='$Dataset' --model='$Model' --async_process='$Async_process' --batch_size='$Batch_size' --learning_rate='$Lr' --lamda='$Lamda' --beta='$Beta' --num_global_iters='$Num_global_iters' --optimizer='$Optimizer' --local_epochs='$Local_epochs' --algorithm='$Algorithm' --data_load='$Data_load' --index='$index C-m \;
-#     index=$((index + 1))
-# done
+index=0
+while [ "$index" -lt "$Num_users" ]; do
+    # gnome-terminal -- 
+    tmux new -s client$index \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 client.py --dataset='$Dataset' --model='$Model' --async_process='$Async_process' --batch_size='$Batch_size' --learning_rate='$Lr' --lamda='$Lamda' --beta='$Beta' --num_global_iters='$Num_global_iters' --optimizer='$Optimizer' --local_epochs='$Local_epochs' --algorithm='$Algorithm' --data_load='$Data_load' --index='$index C-m \; send-keys 'exit' C-m \;
+    index=$((index + 1))
+done

@@ -18,16 +18,15 @@ def main(dataset, algorithm, model, async_process, batch_size, learning_rate, la
         print("---------------Running time:------------",i)
         # Generate model
         if(model == "mclr"):
-            if(dataset == "MNIST"):
-                pre_model = Mclr_Logistic()
-            else:
+            if(dataset == "Cifar10"):
                 pre_model = Mclr_Logistic(60,10)
-                
-        if(model == "cnn"):
-            if(dataset == "MNIST"):
-                pre_model = Net()
             else:
+                pre_model = Mclr_Logistic()
+        if(model == "cnn"):
+            if(dataset == "Cifar10"):
                 pre_model = CifarNet()
+            else:
+                pre_model = Net()
         # if can_gpu:
         #     pre_model = pre_model.cuda()
         model = pre_model
@@ -46,7 +45,7 @@ def str2bool(v):
 if __name__ == "__main__":
     mp.set_start_method('fork', force=True)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
+    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FashionMNIST", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])
     parser.add_argument("--async_process", type=str2bool, default=True)
     parser.add_argument("--batch_size", type=int, default=20)

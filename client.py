@@ -12,21 +12,21 @@ from Algorithms.models.model import *
 import pandas as pd
 torch.manual_seed(0)
 
-def main(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):
+def init_client(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):
     rpcController = zerorpc.Client()
     rpcController.connect('tcp://127.0.0.1:8888')
     id, train, test = read_user_data_async(index, dataset)
     rpcController.add_client(id, 0)
     if(model == "mclr"):
-        if(dataset == "MNIST"):
-            model = Mclr_Logistic()
-        else:
+        if(dataset == "Cifar10"):
             model = Mclr_Logistic(60,10)
-    if(model == "cnn"):
-        if(dataset == "MNIST"):
-            model = Net()
         else:
+            model = Mclr_Logistic()
+    if(model == "cnn"):
+        if(dataset == "Cifar10"):
             model = CifarNet()
+        else:
+            model = Net()
     model = model.cuda()
     pre_model = torch.load(os.path.join('models', 'server_'+id+'.pt'))
     model.load_state_dict(pre_model)
@@ -72,6 +72,72 @@ def main(dataset, model, algorithm, async_process, batch_size, learning_rate, la
     filename = './results/'+algorithm+'_'+dataset+user.id+'_'+'.csv'
     dataFrame.to_csv(filename, index=False, sep=',')
 
+class ClientSub(object):
+    def __init__(self, dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):
+        self.dataset = dataset
+        self.algorithm = algorithm
+        self.clientRpc = zerorpc.Client()
+        self.clientRpc.connect('tcp://127.0.0.1:8888')
+        id, train, test = read_user_data_async(index, dataset)
+        if(model == "mclr"):
+            if(dataset == "Cifar10"):
+                model = Mclr_Logistic(60,10)
+            else:
+                model = Mclr_Logistic()
+        if(model == "cnn"):
+            if(dataset == "Cifar10"):
+                model = CifarNet()
+            else:
+                model = Net()
+        model = model.cuda()
+        pre_model = torch.load(os.path.join('models', 'server.pt'))
+        model.load_state_dict(pre_model)
+        if algorithm == 'FedAvg':
+            user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+        if algorithm == 'ASO':
+            user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+        if algorithm == 'FAFed':
+            user = UserFAFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+        print(user.id, ' start !')
+        user.save_model()
+        self.clientRpc.add_client(id, user.train_data_samples)
+        self.user = user
+    
+    def new_epoch(self, epoch ,time_stamp):
+        print(self.user.id, ' get ', epoch)
+        if self.user.can_train() is False:
+            print(self.user.id, 'pass')
+            self.clientRpc.close_epoch(self.user.id, False)
+            return False
+        print(self.user.id, 'train')
+        time.sleep(torch.randint(10, 100, (1,)).item() / 1000)   
+        self.clientRpc.get_model(self.user.id)         
+        global_model = self.user.load_model('server_'+self.user.id)
+        self.user.train(global_model)
+        self.user.save_model()
+        self.clientRpc.client_update(self.user.id, self.user.train_data_samples)
+        self.clientRpc.close_epoch(self.user.id, True)
+
+    def ready_start(self, time_stamp):
+        print(self.user.id, ' ready start.', time_stamp)
+    def complete_train(self, time_stamp):
+        self.clientRpc.close_client(self.user.id)
+        print(self.user.id, ' is over.')
+        dictData = {}
+        dictData[self.user.id+'_test_acc'] = self.user.test_acc_log[:]
+        dataFrame = pd.DataFrame(dictData)
+        filename = './results/'+self.algorithm+'_'+self.dataset+self.user.id+'_'+'.csv'
+        dataFrame.to_csv(filename, index=False, sep=',')
+        self.clientRpc.close()
+
+def main(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):
+    if async_process is True:
+        init_client(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index)
+    else:
+        client = zerorpc.Subscriber(ClientSub(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index))
+        client.connect('tcp://127.0.0.1:8889')
+        client.run()
+
         
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -84,7 +150,7 @@ def str2bool(v):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FasionMNIST", "Cifar10"])
+    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "FashionMNIST", "Cifar10"])
     parser.add_argument("--model", type=str, default="cnn", choices=["mclr", "cnn"])
     parser.add_argument("--async_process", type=str2bool, default=True)
     parser.add_argument("--batch_size", type=int, default=20)
