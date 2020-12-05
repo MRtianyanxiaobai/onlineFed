@@ -5,14 +5,13 @@ import os
 import json
 import copy
 from torch.utils.data import DataLoader
-from Algorithms.optimizers.optimizer import lamdaSGDOptimizer
 from Algorithms.users.userBase import User
 
 class UserFAFed(User):
     def __init__(self, id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load):
         super().__init__(id, train_data, test_data, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
         self.loss = nn.CrossEntropyLoss()
-        self.optimizer = lamdaSGDOptimizer(self.model, lr=self.learning_rate, lamda=self.lamda)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
         self.last_model = copy.deepcopy(list(model.parameters()))
         self.benefit = True
 

@@ -10,6 +10,7 @@ import numpy as np
 import random
 from itertools import combinations
 torch.manual_seed(0)
+torch.cuda.manual_seed(0)
 random.seed(0)
 np.random.seed(0)
 

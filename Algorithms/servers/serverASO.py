@@ -2,7 +2,6 @@ import torch
 import os
 
 from Algorithms.servers.serverBase import Server
-import numpy as np
 
 class ServerASO(Server):
     def __init__(self, algorithm, model, async_process, test_data, batch_size):
@@ -18,6 +17,7 @@ class ServerASO(Server):
                 #模型聚合
                 for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
                     global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
+                    user_old_param.data = user_new_param.data.clone()
                 # # feature learning
                 # alpha = torch.exp(torch.abs(list(self.model.parameters())[0].data))
                 # for index, val in enumerate(alpha):
@@ -34,12 +34,10 @@ class ServerASO(Server):
             total_train = 0
             for user in self.users.values():
                 total_train += user.samples
-            for index, global_copy in enumerate(self.model_cpoy):
+            for index, global_copy in enumerate(self.model.parameters()):
                 global_copy.data = torch.zeros_like(global_copy.data)
                 for user in self.users.values():
                     global_copy.data = global_copy.data + (user.samples / total_train)*user.model[index].data
-            for global_param, global_copy in zip(self.model.parameters(), self.model_cpoy):
-                global_param.data = global_copy.data.clone()
 
         
 

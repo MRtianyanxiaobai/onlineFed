@@ -2,12 +2,12 @@ import torch
 import os
 import copy
 from Algorithms.servers.serverBase import Server
-import numpy as np
 
 class ServerFAFed(Server):
     def __init__(self, algorithm, model, async_process, test_data, batch_size):
         super().__init__(algorithm, model, async_process, test_data, batch_size)
         self.last_model = copy.deepcopy(list(model.parameters()))
+        self.new_model = copy.deepcopy(list(model.parameters()))
         self.benefit = True
     
     def test(self):
@@ -45,10 +45,6 @@ class ServerFAFed(Server):
                         global_param.data = global_param.data + 1.1*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
                     else:
                         global_param.data = global_param.data + 0.9*(user_updated.samples / total_train)*(user_new_param.data - user_old_param.data)
-                # self.test()
-                # for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
-                #     global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
-                #     user_old_param.data = user_new_param.data.clone()
         else:
             for user_updated in user_data:
                 self.users[user_updated.id].samples = user_updated.samples
@@ -57,9 +53,20 @@ class ServerFAFed(Server):
             total_train = 0
             for user in self.users.values():
                 total_train += user.samples
-            for index, global_copy in enumerate(self.model_cpoy):
+            for index, global_copy in enumerate(self.new_model):
                 global_copy.data = torch.zeros_like(global_copy.data)
                 for user in self.users.values():
                     global_copy.data = global_copy.data + (user.samples / total_train)*user.model[index].data
-            for global_param, global_copy in zip(self.model.parameters(), self.model_cpoy):
-                global_param.data = global_copy.data.clone()
+            for new_param, current_param, last_param in zip(self.new_model, self.model.parameters(), self.last_model):
+                distance = new_param.data - current_param.data
+                last_distance = current_param.data - last_param.data
+                distance_vec = torch.flatten(distance)
+                last_distance_vec = torch.flatten(last_distance)
+                similarity = torch.cosine_similarity(last_distance_vec, distance_vec, dim=0).item()
+                last_param.data = current_param.data.clone()
+                if self.benefit is True and similarity >= 0:
+                    current_param.data = current_param.data + 1.1*distance
+                elif self.benefit is False and similarity <= 0:
+                    current_param.data = current_param.data + 1.1*distance
+                else:
+                    current_param.data = current_param.data + 0.9*distance

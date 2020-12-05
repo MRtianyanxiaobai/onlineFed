@@ -6,16 +6,19 @@ while [ "$gpu_check" -le 9000 ]; do
     sleep 30m
 done
 echo 'Start FedAvg'
-source start.sh FedAvg
+output = `source start.sh FedAvg`
+output = `tmux kill-server`
 
 while [ "$gpu_check" -le 9000 ]; do
     sleep 30m
 done
 echo 'Start ASO'
-source start.sh ASO
+output= `source start.sh ASO`
+output = `tmux kill-server`
 
 while [ "$gpu_check" -le 9000 ]; do
     sleep 30m
 done
 echo 'Start FAFed'
-source start.sh FAFed
+output = `source start.sh FAFed`
+output = `tmux kill-server`

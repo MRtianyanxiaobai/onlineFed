@@ -1,11 +1,8 @@
 import torch
 import os
-import numpy as np
 import copy
 from torch.utils.data import DataLoader
-
 from utils.model_utils import Object
-
 class Server:
     def __init__(self, algorithm, model, async_process, test_data, batch_size):
         self.model = copy.deepcopy(model)

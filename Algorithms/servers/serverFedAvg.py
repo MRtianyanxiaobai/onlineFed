@@ -2,7 +2,6 @@ import torch
 import os
 import copy
 from Algorithms.servers.serverBase import Server
-import numpy as np
 
 class ServerFedAvg(Server):
     def __init__(self, algorithm, model, async_process, test_data, batch_size):
@@ -25,11 +24,11 @@ class ServerFedAvg(Server):
             total_train = 0
             for user in self.users.values():
                 total_train += user.samples
-            for index, global_copy in enumerate(self.model_cpoy):
+            for index, global_copy in enumerate(self.model.parameters()):
                 global_copy.data = torch.zeros_like(global_copy.data)
                 for user in self.users.values():
                     global_copy.data = global_copy.data + (user.samples / total_train)*user.model[index].data
-            for global_param, global_copy in zip(self.model.parameters(), self.model_cpoy):
-                global_param.data = global_copy.data.clone()
+            # for global_param, global_copy in zip(self.model.parameters(), self.model_cpoy):
+            #     global_param.data = global_copy.data.clone()
             
         

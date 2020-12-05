@@ -3,6 +3,8 @@ import os
 import argparse
 import torch
 import time
+import random
+import numpy as np
 import gevent
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
@@ -11,6 +13,12 @@ from utils.model_utils import read_test_data_async
 from Algorithms.models.model import *
 import pandas as pd
 torch.manual_seed(0)
+torch.cuda.manual_seed(0)
+torch.cuda.manual_seed_all(0)
+random.seed(0)
+np.random.seed(0)
+torch.backends.cudnn.deterministic =True
+torch.backends.cudnn.benchmark = False
 trigger = gevent.event.Event()
 class RpcController(object):
     def __init__(self, dataset, algorithm, model, num_users, async_process, batch_size):
@@ -36,6 +44,7 @@ class RpcController(object):
         if algorithm == 'FAFed':
             server = ServerFAFed(algorithm, pre_model, async_process, test_data, batch_size)
         # server.test()
+        self.start_time = tiem.time()
         self.server = server
         self.nun_users = num_users
         self.server.save_model()
@@ -82,6 +91,9 @@ class RpcController(object):
             return False
 
     def get_model(self, id):
+        if self.server.algorithm == 'ASO':
+            self.server.save_model("server_"+id)
+            return True
         for global_param, user_init in zip(self.server.model.parameters(), self.server.users[id].model):
             user_init.data = global_param.data.clone()
         self.server.save_model("server_"+id)
@@ -90,29 +102,35 @@ class RpcController(object):
     def close_client(self, id):
         self.client_counter = self.client_counter - 1
         if self.client_counter == 0:
+            self.server.test()
             dictData = {}
             dictData['server_test_acc'] = self.server.test_acc_log[:]
             dataFrame = pd.DataFrame(dictData)
             filename = './results/'+self.server.algorithm+'_'+self.dataset+'_'+'.csv'
             dataFrame.to_csv(filename, index=False, sep=',')
             print('Server Over !')
+            end_time = time.time()
+            print("Solve time is, ", end_time - self.start_time)
             trigger.set()
     
     def close_epoch(self, id, isTrain):
         self.user_epoch_counter = self.user_epoch_counter + 1
         print(id, "close epoch, ", isTrain, self.user_epoch_counter, self.client_counter, self.num_users)
         if self.user_epoch_counter == self.client_counter:
+            self.server.clear_update_cache()
             self.user_epoch_counter = 0
             trigger.set()
 
 
 def main(dataset, algorithm, model, num_users, async_process, batch_size, num_global_iters):
     if async_process is True:
+        print("async structure")
         server = zerorpc.Server(RpcController(dataset, algorithm, model, num_users, async_process, batch_size))
         server.bind('tcp://0.0.0.0:8888')
         print('Server Start!')
         server.run()
     else:
+        print("sync structure")
         server = zerorpc.Server(RpcController(dataset, algorithm, model, num_users, async_process, batch_size))
         server.bind('tcp://0.0.0.0:8888')
         publisher = zerorpc.Publisher()

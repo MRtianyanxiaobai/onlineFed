@@ -4,6 +4,8 @@ import argparse
 import torch
 import time
 import gevent
+import random
+import numpy as np
 from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvg import UserFedAvg
 from Algorithms.users.userFAFed import UserFAFed
@@ -11,10 +13,16 @@ from utils.model_utils import read_user_data_async
 from Algorithms.models.model import *
 import pandas as pd
 torch.manual_seed(0)
-
+torch.cuda.manual_seed(0)
+torch.cuda.manual_seed_all(0)
+random.seed(0)
+np.random.seed(0)
+torch.backends.cudnn.deterministic =True
+torch.backends.cudnn.benchmark = False
 def init_client(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):
     rpcController = zerorpc.Client()
     rpcController.connect('tcp://127.0.0.1:8888')
+    start_time = time.time()
     id, train, test = read_user_data_async(index, dataset)
     rpcController.add_client(id, 0)
     if(model == "mclr"):
@@ -63,14 +71,16 @@ def init_client(dataset, model, algorithm, async_process, batch_size, learning_r
         else:
             print(user.id, ' in ', i)
 
-    
     rpcController.close_client(user.id)
     print(user.id, ' is over.')
+    user.test()
     dictData = {}
     dictData[user.id+'_test_acc'] = user.test_acc_log[:]
     dataFrame = pd.DataFrame(dictData)
     filename = './results/'+algorithm+'_'+dataset+user.id+'_'+'.csv'
     dataFrame.to_csv(filename, index=False, sep=',')
+    end_time = time.time()
+    print(user.id, " solve time si", end_time - start_time)
 
 class ClientSub(object):
     def __init__(self, dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):
@@ -78,6 +88,7 @@ class ClientSub(object):
         self.algorithm = algorithm
         self.clientRpc = zerorpc.Client()
         self.clientRpc.connect('tcp://127.0.0.1:8888')
+        self.start_time = time.time()
         id, train, test = read_user_data_async(index, dataset)
         if(model == "mclr"):
             if(dataset == "Cifar10"):
@@ -120,14 +131,18 @@ class ClientSub(object):
 
     def ready_start(self, time_stamp):
         print(self.user.id, ' ready start.', time_stamp)
+
     def complete_train(self, time_stamp):
-        self.clientRpc.close_client(self.user.id)
         print(self.user.id, ' is over.')
+        self.user.test()
         dictData = {}
         dictData[self.user.id+'_test_acc'] = self.user.test_acc_log[:]
         dataFrame = pd.DataFrame(dictData)
         filename = './results/'+self.algorithm+'_'+self.dataset+self.user.id+'_'+'.csv'
         dataFrame.to_csv(filename, index=False, sep=',')
+        end_time = time.time()
+        print(self.user.id, " solve time is", end_time - self.start_time)
+        self.clientRpc.close_client(self.user.id)
         self.clientRpc.close()
 
 def main(dataset, model, algorithm, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, data_load, index):

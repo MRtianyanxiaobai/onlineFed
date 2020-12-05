@@ -26,8 +26,6 @@ class UserASO(User):
             server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
             self.trained = False
 
-        return LOSS
-
     def train(self, global_model):
         self.model.train()
         # loss_log = []

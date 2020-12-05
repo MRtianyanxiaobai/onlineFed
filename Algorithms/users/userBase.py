@@ -4,9 +4,7 @@ import torch.nn.functional as F
 import os
 import json
 from torch.utils.data import DataLoader
-import numpy as np
 import copy
-
 class User:
     def __init__(self, id, train_data, test_data, model, async_process, batch_size = 0, learning_rate = 0, lamda = 0, beta = 0, local_epochs = 0, optimizer = "SGD", data_load = "fixed"):
         self.model = copy.deepcopy(model)
