@@ -44,7 +44,7 @@ class RpcController(object):
         if algorithm == 'FAFed':
             server = ServerFAFed(algorithm, pre_model, async_process, test_data, batch_size)
         # server.test()
-        self.start_time = tiem.time()
+        self.start_time = time.time()
         self.server = server
         self.nun_users = num_users
         self.server.save_model()

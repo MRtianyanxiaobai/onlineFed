@@ -5,17 +5,15 @@ import numpy as np
 import copy
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
-from Algorithms.servers.serverFAFed import ServerFAFed
 from Algorithms.users.userASO import UserASO
-from Algorithms.users.userFedAvg import UserFedAvg
-from Algorithms.users.userFAFed import UserFAFed
+from Algorithms.users.userFedAvgBase import UserFedAvg
 from utils.model_utils import read_data, read_user_data
 import torch
 import pandas as pd
 torch.manual_seed(0)
 
 
-class SingleScheduler:
+class Scheduler:
     def __init__(self, dataset,algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
                  local_epochs, optimizer, num_users, user_labels, niid, times, data_load):
         self.dataset = dataset
@@ -35,6 +33,7 @@ class SingleScheduler:
         self.user_labels = user_labels
         self.niid = niid
         self.users = []
+        self.local_acc = []
         self.avg_local_acc = []
         self.avg_local_train_acc = []
         self.avg_local_train_loss = []
@@ -43,36 +42,55 @@ class SingleScheduler:
         data = read_data(dataset, niid, num_users, user_labels)
         self.num_users = num_users
         test_data = []
-        for i in range(self.num_users):
+        id, train, test = read_user_data(0, data, dataset)
+        user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, times)
+        self.users.append(user)
+        test_data.extend(test)
+        for i in range(1, self.num_users):
             id, train, test = read_user_data(i, data, dataset)
             if algorithm == 'FedAvg':
                 user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'ASO':
                 user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
-            if algorithm == 'FAFed':
-                user = UserFAFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
         if algorithm == 'FedAvg':
-            self.server = ServerFedAvg(algorithm, model, async_process, test_data)
+            self.server = ServerFedAvg(algorithm, model, async_process, test_data, batch_size)
         if algorithm == 'ASO':
-            self.server = ServerASO(algorithm, model, async_process, test_data)
-        if algorithm == 'FAFed':
-            self.server = ServerFAFed(algorithm, model, async_process, test_data)
+            self.server = ServerASO(algorithm, model, async_process, test_data, batch_size)
         for user in self.users:
-            self.server.append_user(user)
+            self.server.append_user(user.id, user.train_data_samples)
     
     def run(self):
         for glob_iter in range(self.num_glob_iters):
             print("-------------Round number: ",glob_iter, " -------------")
             for user in self.users:
-                user.train(self.server, glob_iter)
+                user.run(self.server)
             if self.async_process == False:
                 self.server.clear_update_cache()
             self.evaluate()
-        self.save_results()
-        self.server.save_model()
-        self.save_loss_log()
+        # sync not drop
+        # extra_iters = [800,]
+        # for i in range(extra_iters[self.times] - self.users['f_00000'].train_counter):
+        #     user = self.users['f_00000']
+        #     user.train(list(self.server.model.parameters()))
+        #     self.server.update_parameters(user.id, user.model.parameters(), user.train_data_samples)
+        #     self.server.clear_update_cache()
+        #     self.evaluate()
+        
+        # async
+        # train_count = []
+        # for user in self.users:
+        #     if user.trained:
+        #         self.server.update_parameters(user.id, user.model.parameters(), user.train_data_samples)
+        #     train_count.append(user.train_counter)
+        # self.server.clear_update_cache()
+        # self.evaluate()
+        # self.local_acc.append(train_count)
+        # self.server_acc.append(self.num_glob_iters)
+        # self.save_results()
+        # self.server.save_model()
+        # self.save_loss_log()
     
     def save_loss_log(self):
         for user in self.users:
@@ -87,17 +105,10 @@ class SingleScheduler:
         self.evaluate_server()
 
     def evaluate_users(self):
-        stats = self.users_test()  
-        stats_train = self.users_train_error_and_loss()
-        avg_acc = np.sum(stats[2])*1.0/np.sum(stats[1])
-        train_acc = np.sum(stats_train[2])*1.0/np.sum(stats_train[1])
-        train_loss = sum([x * y for (x, y) in zip(stats_train[1], stats_train[3])]) / np.sum(stats_train[1])
-        self.avg_local_acc.append(avg_acc)
-        self.avg_local_train_acc.append(train_acc)
-        self.avg_local_train_loss.append(train_loss)
-        print("Average Local Accurancy: ", avg_acc)
-        print("Average Local Trainning Accurancy: ", train_acc)
-        print("Average Local Trainning Loss: ",train_loss)
+        stats = self.users_test() 
+        client_acc = [x*1.0/y for x, y in zip(stats[2], stats[1])] 
+        self.local_acc.append(client_acc)
+        print("Local Accurancy: ", client_acc)
 
     def evaluate_server(self):
         stats = self.server.test()
@@ -132,7 +143,7 @@ class SingleScheduler:
         return ids, num_samples, tot_correct, losses
     
     def save_results(self):
-        alg = self.dataset + "_" + self.algorithm + "_" + self.model[1] + "_" + self.optimizer
+        alg = self.dataset + "_" + self.algorithm + "_" + self.optimizer
         if self.async_process == True:
             alg = alg + "_async"
         else:
@@ -143,15 +154,15 @@ class SingleScheduler:
             alg = alg + "_iid"
         alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.user_labels) + "l" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + str(self.num_glob_iters) + "ep" + "_" + self.data_load
         alg = alg + "_" + str(self.times)
-        if (len(self.avg_local_acc) != 0 &  len(self.avg_local_train_acc) & len(self.avg_local_train_loss)) :
+        if (len(self.server_acc) &  len(self.local_acc) ) :
             dictData={}
-            dictData['avg_local_acc'] = self.avg_local_acc[:]
-            dictData['avg_local_train_acc'] = self.avg_local_train_acc[:]
-            dictData['avg_local_train_loss'] = self.avg_local_train_loss[:]
+            for i in range(self.num_users):
+                dictData['client_'+str(i)] = [x[i] for x in self.local_acc]
             dictData['central_model_acc'] = self.server_acc[:]
             dataframe = pd.DataFrame(dictData)
             fileName = "./results/"+alg+'.csv'
             dataframe.to_csv(fileName, index=False, sep=',')
+        
     
 
     

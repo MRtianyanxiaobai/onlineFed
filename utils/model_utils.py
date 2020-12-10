@@ -22,6 +22,25 @@ IMAGE_SIZE_CIFAR = 32
 NUM_CHANNELS_CIFAR = 3
 
 def read_data(dataset, niid, num_users, user_labels):
+    train_path = './data/'+dataset+'/train.json'
+    test_path = './data/'+dataset+'/test.json'
+    if os.path.exists(train_path) and os.path.exists(test_path):
+        with open(train_path, 'r') as train_f:
+            train_data = json.load(train_f)
+        with open(test_path, 'r') as test_f:
+            test_data = json.load(test_f)
+        if len(train_data['users']) == num_users and train_data['niid'] == niid and train_data['user_labels'] == user_labels:
+            print('Dataset is Complete !')
+            return train_data['users'], '', train_data['user_data'], test_data['user_data']
+        else:
+            del train_data
+            del test_data
+    train_dir_path = os.path.dirname(train_path)
+    test_dir_path = os.path.dirname(test_path)
+    if not os.path.exists(train_dir_path):
+        os.makedirs(train_dir_path)
+    if not os.path.exists(test_dir_path):
+        os.makedirs(test_dir_path)
     if niid == False:
         user_labels = 10
     
@@ -137,16 +156,17 @@ def read_user_data(index,data,dataset):
         y_train = torch.Tensor(y_train).type(torch.int64)
         X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_test = torch.Tensor(y_test).type(torch.int64)
-    elif(dataset == "Cifar10"):
+    if(dataset == "Cifar10"):
         X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
         X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS_CIFAR, IMAGE_SIZE_CIFAR, IMAGE_SIZE_CIFAR).type(torch.float32)
         y_train = torch.Tensor(y_train).type(torch.int64)
         X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS_CIFAR, IMAGE_SIZE_CIFAR, IMAGE_SIZE_CIFAR).type(torch.float32)
         y_test = torch.Tensor(y_test).type(torch.int64)
-    else:
-        X_train = torch.Tensor(X_train).type(torch.float32)
+    if dataset == 'FashionMNIST':
+        X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
+        X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_train = torch.Tensor(y_train).type(torch.int64)
-        X_test = torch.Tensor(X_test).type(torch.float32)
+        X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
         y_test = torch.Tensor(y_test).type(torch.int64)
     
     train_data = [(x, y) for x, y in zip(X_train, y_train)]

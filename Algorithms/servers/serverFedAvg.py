@@ -15,7 +15,8 @@ class ServerFedAvg(Server):
                 for user in self.users.values():
                     total_train += user.samples
                 for global_param, user_old_param, user_new_param in zip(self.model.parameters(), self.users[user_updated.id].model, user_updated.model):
-                    global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
+                    # global_param.data = global_param.data - (user_updated.samples / total_train)*(user_old_param.data - user_new_param.data)
+                    global_param.data = global_param.data - (1 / len(self.users))*(user_old_param.data - user_new_param.data)
         else:
             for user_updated in user_data:
                 self.users[user_updated.id].samples = user_updated.samples
@@ -28,7 +29,6 @@ class ServerFedAvg(Server):
                 global_copy.data = torch.zeros_like(global_copy.data)
                 for user in self.users.values():
                     global_copy.data = global_copy.data + (user.samples / total_train)*user.model[index].data
-            # for global_param, global_copy in zip(self.model.parameters(), self.model_cpoy):
-            #     global_param.data = global_copy.data.clone()
+                    # global_copy.data = global_copy.data + (1 / len(self.users))*user.model[index].data
             
         

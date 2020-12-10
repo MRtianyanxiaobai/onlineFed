@@ -139,7 +139,7 @@ class User:
         for i, (x, y) in enumerate(self.trainloader):
             output = self.model(x.cuda())
             train_acc += (torch.sum(torch.argmax(output, dim=1) == y.cuda())).item()
-            loss += self.loss(output, y)
+            loss += self.loss(output, y.cuda())
         print(self.id, "loss ", loss.item())
         return train_acc, loss.item() , self.train_data_samples
     
