@@ -5,8 +5,10 @@ import numpy as np
 import copy
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
+from Algorithms.servers.serverLGP import ServerLGP
 from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvgBase import UserFedAvg
+from Algorithms.users.userLGP import UserLGP
 from utils.model_utils import read_data, read_user_data
 import torch
 import pandas as pd
@@ -15,7 +17,7 @@ torch.manual_seed(0)
 
 class Scheduler:
     def __init__(self, dataset,algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
-                 local_epochs, optimizer, num_users, user_labels, niid, times, data_load):
+                 local_epochs, optimizer, num_users, user_labels, niid, times, data_load, extra):
         self.dataset = dataset
         self.model = copy.deepcopy(model)
         self.algorithm = algorithm
@@ -27,6 +29,7 @@ class Scheduler:
         self.beta = beta
         self.times = times
         self.data_load = data_load
+        self.extra = extra
         self.num_users = num_users
         self.num_glob_iters = num_glob_iters
         self.local_epochs = local_epochs
@@ -43,21 +46,39 @@ class Scheduler:
         self.num_users = num_users
         test_data = []
         id, train, test = read_user_data(0, data, dataset)
-        user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, times)
-        self.users.append(user)
-        test_data.extend(test)
-        for i in range(1, self.num_users):
+        # if algorithm == 'FedAvg':
+        #     user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
+        # if algorithm == 'ASO':
+        #     user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
+        # if algorithm == 'LGP':
+        #     user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
+        # self.users.append(user)
+        # test_data.extend(test)
+        for i in range(self.times):
+            if algorithm == 'FedAvg':
+                user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i)
+            if algorithm == 'ASO':
+                user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i)
+            if algorithm == 'LGP':
+                user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i)
+            self.users.append(user)
+            test_data.extend(test)
+        for i in range(self.times, self.num_users):
             id, train, test = read_user_data(i, data, dataset)
             if algorithm == 'FedAvg':
                 user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'ASO':
                 user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+            if algorithm == 'LGP':
+                user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
         if algorithm == 'FedAvg':
             self.server = ServerFedAvg(algorithm, model, async_process, test_data, batch_size)
         if algorithm == 'ASO':
             self.server = ServerASO(algorithm, model, async_process, test_data, batch_size)
+        if algorithm == 'LGP':
+            self.server = ServerLGP(algorithm, model, async_process, test_data, batch_size)
         for user in self.users:
             self.server.append_user(user.id, user.train_data_samples)
     
@@ -70,13 +91,13 @@ class Scheduler:
                 self.server.clear_update_cache()
             self.evaluate()
         # sync not drop
-        # extra_iters = [800,]
-        # for i in range(extra_iters[self.times] - self.users['f_00000'].train_counter):
-        #     user = self.users['f_00000']
-        #     user.train(list(self.server.model.parameters()))
-        #     self.server.update_parameters(user.id, user.model.parameters(), user.train_data_samples)
-        #     self.server.clear_update_cache()
-        #     self.evaluate()
+        extra_iters = [800,800, 400, 267, 200, 160, 134,115, 100, 89]
+        for i in range(extra_iters[self.times] - self.users[0].train_counter):
+            user = self.users[0]
+            user.train(list(self.server.model.parameters()))
+            self.server.update_parameters(user.id, user.model.parameters(), user.train_data_samples)
+            self.server.clear_update_cache()
+            self.evaluate()
         
         # async
         # train_count = []
@@ -88,8 +109,9 @@ class Scheduler:
         # self.evaluate()
         # self.local_acc.append(train_count)
         # self.server_acc.append(self.num_glob_iters)
-        # self.save_results()
-        # self.server.save_model()
+        
+        self.save_results()
+        self.server.save_model()
         # self.save_loss_log()
     
     def save_loss_log(self):
@@ -153,7 +175,7 @@ class Scheduler:
         else:
             alg = alg + "_iid"
         alg = alg + "_" + str(self.learning_rate) + "_" + str(self.beta) + "_" + str(self.lamda) + "_" + str(self.num_users) + "u" + "_" + str(self.user_labels) + "l" + "_" + str(self.batch_size) + "b" + "_" + str(self.local_epochs) + "_" + str(self.num_glob_iters) + "ep" + "_" + self.data_load
-        alg = alg + "_" + str(self.times)
+        alg = alg + "_" + str(self.times) + "_" + self.extra
         if (len(self.server_acc) &  len(self.local_acc) ) :
             dictData={}
             for i in range(self.num_users):

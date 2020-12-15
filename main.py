@@ -14,7 +14,7 @@ random.seed(0)
 np.random.seed(0)
 
 def main(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
-         local_epochs, optimizer, numusers, user_labels, niid, times, data_load):
+         local_epochs, optimizer, numusers, user_labels, niid, times, data_load, extra = "none"):
     print(async_process, times)
     for i in range(times):
         print("---------------Running time:------------",i)
@@ -32,7 +32,7 @@ def main(dataset, algorithm, model, async_process, batch_size, learning_rate, la
         # if can_gpu:
         #     pre_model = pre_model.cuda()
         model = pre_model.cuda()
-        scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load)
+        scheduler = Scheduler(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters, local_epochs, optimizer, numusers, user_labels, niid, i, data_load, extra)
         scheduler.run()
         
 def str2bool(v):
@@ -56,12 +56,13 @@ if __name__ == "__main__":
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
-    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "FAFed"]) 
+    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "LGP"]) 
     parser.add_argument("--numusers", type=int, default=10, help="Number of Users per round")
     parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
     parser.add_argument("--niid", type=str2bool, default=True, help="data distrabution for iid or niid")
     parser.add_argument("--times", type=int, default=5, help="running time")
     parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
+    parser.add_argument("--extra", type=str, default="None")
     args = parser.parse_args()
 
     print("=" * 80)
@@ -92,5 +93,6 @@ if __name__ == "__main__":
         user_labels = args.user_labels,
         niid = args.niid,
         times = args.times,
-        data_load = args.data_load
+        data_load = args.data_load,
+        extra = args.extra
         )

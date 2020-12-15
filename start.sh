@@ -12,7 +12,7 @@ Async_process='False'    # True False
 Optimizer='SGD'         # SGD
 Batch_size=64    
 Lr=0.008
-Lamda=1
+Lamda=0.5
 Beta=0.001
 Num_global_iters=800
 Local_epochs=20
@@ -21,8 +21,9 @@ User_labels=5
 Niid='True'            # True False
 Data_load='fixed'      # fixed flow
 Times=10
+Extra='_drop'
 
-tmux new -s $Algorithm'-'$Times  \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 main.py --dataset='$Dataset' --model='$Model' --async_process='$Async_process' --batch_size='$Batch_size' --learning_rate='$Lr' --lamda='$Lamda' --beta='$Beta' --num_global_iters='$Num_global_iters' --optimizer='$Optimizer' --local_epochs='$Local_epochs' --algorithm='$Algorithm' --numusers='$Num_users' --user_labels='$User_labels' --niid='$Niid' --data_load='$Data_load' --times='$Times C-m \;
+tmux new -s $Algorithm'-'$Dataset'-'$Extra  \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 main.py --dataset='$Dataset' --model='$Model' --async_process='$Async_process' --batch_size='$Batch_size' --learning_rate='$Lr' --lamda='$Lamda' --beta='$Beta' --num_global_iters='$Num_global_iters' --optimizer='$Optimizer' --local_epochs='$Local_epochs' --algorithm='$Algorithm' --numusers='$Num_users' --user_labels='$User_labels' --niid='$Niid' --data_load='$Data_load' --times='$Times' --extra='$Extra C-m \;
 
 # output=`python3 check_dataset.py --dataset=$Dataset --numusers=$Num_users --user_labels=$User_labels --niid=$Niid`
 # gnome-terminal -- 

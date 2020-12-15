@@ -135,7 +135,12 @@ model.load_state_dict(model_dict)
 # print(model_dict)
 # for param in model_dict.values():
 #     print(param)
+model.train()
+index = 0
 for old, new in zip(model.parameters(), model_dict.values()):
     old.data = new.data
-    print("old:",old)
+    index = index + 1
+    # print("old:",old)
     print("new:", new)
+print(index)
+print(model_dict.keys())

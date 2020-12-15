@@ -3,9 +3,10 @@ import os
 import copy
 from Algorithms.servers.serverBase import Server
 
-class ServerFedAvg(Server):
+class ServerLGP(Server):
     def __init__(self, algorithm, model, async_process, test_data, batch_size):
         super().__init__(algorithm, model, async_process, test_data, batch_size)
+        self.flag = True
     
     def aggregate_parameters(self, user_data):
         if self.async_process == True:
@@ -26,9 +27,8 @@ class ServerFedAvg(Server):
             for user in self.users.values():
                 total_train += user.samples
             for index, global_copy in enumerate(self.model.parameters()):
+                # if index >= 6:
+                #     continue
                 global_copy.data = torch.zeros_like(global_copy.data)
                 for user in self.users.values():
                     global_copy.data = global_copy.data + (user.samples / total_train)*user.model[index].data
-
-            
-        
