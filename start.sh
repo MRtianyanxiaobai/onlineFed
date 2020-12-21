@@ -21,7 +21,7 @@ User_labels=5
 Niid='True'            # True False
 Data_load='fixed'      # fixed flow
 Times=10
-Extra='_drop'
+Extra='not_drop_cross_multi_plus_9'
 
 tmux new -s $Algorithm'-'$Dataset'-'$Extra  \; send-keys 'conda activate folv1' C-m \; send-keys 'python3 main.py --dataset='$Dataset' --model='$Model' --async_process='$Async_process' --batch_size='$Batch_size' --learning_rate='$Lr' --lamda='$Lamda' --beta='$Beta' --num_global_iters='$Num_global_iters' --optimizer='$Optimizer' --local_epochs='$Local_epochs' --algorithm='$Algorithm' --numusers='$Num_users' --user_labels='$User_labels' --niid='$Niid' --data_load='$Data_load' --times='$Times' --extra='$Extra C-m \;
 

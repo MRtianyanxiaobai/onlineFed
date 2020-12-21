@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
@@ -7,11 +8,14 @@ import random
 import os
 from Algorithms.scheduler import Scheduler
 from Algorithms.models.model import *
-import torch
-torch.manual_seed(0)
-torch.cuda.manual_seed(0)
-random.seed(0)
-np.random.seed(0)
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 def main(dataset, algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
          local_epochs, optimizer, numusers, user_labels, niid, times, data_load, extra = "none"):
@@ -56,12 +60,13 @@ if __name__ == "__main__":
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
-    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "LGP"]) 
+    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "LGP", "PerFed"]) 
     parser.add_argument("--numusers", type=int, default=10, help="Number of Users per round")
     parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
     parser.add_argument("--niid", type=str2bool, default=True, help="data distrabution for iid or niid")
     parser.add_argument("--times", type=int, default=5, help="running time")
     parser.add_argument("--data_load", type=str, default="fixed", choices=["fixed", "flow"], help="user data load")
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--extra", type=str, default="None")
     args = parser.parse_args()
 
@@ -77,6 +82,7 @@ if __name__ == "__main__":
     print("Local Model       : {}".format(args.model))
     print("=" * 80)
 
+    set_seed(args.seed)
     main(
         dataset=args.dataset,
         algorithm = args.algorithm,

@@ -15,6 +15,7 @@ class UserFedAvg(User):
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
         self.train_counter = 0
+        self.check_flag = True
     
     def train(self, global_model):
         LOSS = 0
@@ -36,31 +37,41 @@ class UserFedAvg(User):
         return LOSS
 
     def run(self, server):
-
-        if self.trained is True:
-            if self.delay_counter == self.delay:
-                server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
-                self.delay_counter = 0
-                self.trained = False
-                # sync not drop
-                # return
-            else:
+        if self.check_flag is True:
+            # if self.trained is True:
+            #     if self.delay_counter == self.delay:
+            #         server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
+            #         self.delay_counter = 0
+            #         self.trained = False
+            #         self.check_flag = False
+            #         return
+            #     else:
+            #         self.delay_counter = self.delay_counter + 1
+            #         return 
+            # sync drop
+            if self.delay_counter < self.delay:
                 self.delay_counter = self.delay_counter + 1
-                return 
-        # sync drop
-        # if self.delay_counter < self.delay:
-        #     self.delay_counter = self.delay_counter + 1
-        #     return
-        global_model = self.get_global_parameters(server)
-        self.train(global_model)
-        self.train_counter = self.train_counter + 1
-        # sync drop
-        # server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
-        # self.delay_counter = 0
-
-        if self.delay_counter == self.delay:
-            server.update_parameters(self.id, self.model.parameters(), self.train_data_samples)
+                return
+            global_model = self.get_global_parameters(server)
+            self.train(global_model)
+            self.train_counter = self.train_counter + 1
+            # sync drop
+            if self.delay == 0:
+                server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
             self.delay_counter = 0
-            self.trained = False
+            self.check_flag = False
+
+            # if self.delay_counter == self.delay:
+            #     server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
+            #     self.check_flag = False
+            #     self.delay_counter = 0
+            #     self.trained = False
+            # else:
+            #     self.delay_counter = self.delay_counter + 1
         else:
-            self.delay_counter = self.delay_counter + 1
+            global_model = self.get_global_parameters(server)
+            self.train(global_model)
+            self.train_counter = self.train_counter + 1
+            self.check_flag = True
+            server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
+            self.trained = False

@@ -6,14 +6,14 @@ import copy
 from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
 from Algorithms.servers.serverLGP import ServerLGP
+from Algorithms.servers.serverPerFed import ServerPerFed
 from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvgBase import UserFedAvg
 from Algorithms.users.userLGP import UserLGP
+from Algorithms.users.userPerFed import UserPerFed
 from utils.model_utils import read_data, read_user_data
 import torch
 import pandas as pd
-torch.manual_seed(0)
-
 
 class Scheduler:
     def __init__(self, dataset,algorithm, model, async_process, batch_size, learning_rate, lamda, beta, num_glob_iters,
@@ -45,26 +45,33 @@ class Scheduler:
         data = read_data(dataset, niid, num_users, user_labels)
         self.num_users = num_users
         test_data = []
-        id, train, test = read_user_data(0, data, dataset)
+        # id, train, test = read_user_data(0, data, dataset)
         # if algorithm == 'FedAvg':
         #     user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
         # if algorithm == 'ASO':
         #     user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
         # if algorithm == 'LGP':
         #     user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
+        # if algorithm == 'PerFed':
+        #     user = UserPerFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, self.times)
         # self.users.append(user)
         # test_data.extend(test)
         for i in range(self.times):
+            id, train, test = read_user_data(i, data, dataset)
             if algorithm == 'FedAvg':
-                user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i)
+                user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
             if algorithm == 'ASO':
-                user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i)
+                user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
             if algorithm == 'LGP':
-                user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i)
+                user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
+            if algorithm == 'PerFed':
+                user = UserPerFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
             self.users.append(user)
             test_data.extend(test)
         for i in range(self.times, self.num_users):
             id, train, test = read_user_data(i, data, dataset)
+            if algorithm == 'PerFed':
+                user = UserPerFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'FedAvg':
                 user = UserFedAvg(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'ASO':
@@ -75,6 +82,8 @@ class Scheduler:
             test_data.extend(test)
         if algorithm == 'FedAvg':
             self.server = ServerFedAvg(algorithm, model, async_process, test_data, batch_size)
+        if algorithm == 'PerFed':
+            self.server = ServerPerFed(algorithm, model, async_process, test_data, batch_size)
         if algorithm == 'ASO':
             self.server = ServerASO(algorithm, model, async_process, test_data, batch_size)
         if algorithm == 'LGP':
@@ -91,13 +100,13 @@ class Scheduler:
                 self.server.clear_update_cache()
             self.evaluate()
         # sync not drop
-        extra_iters = [800,800, 400, 267, 200, 160, 134,115, 100, 89]
-        for i in range(extra_iters[self.times] - self.users[0].train_counter):
-            user = self.users[0]
-            user.train(list(self.server.model.parameters()))
-            self.server.update_parameters(user.id, user.model.parameters(), user.train_data_samples)
-            self.server.clear_update_cache()
-            self.evaluate()
+        # extra_iters = [800,800, 400, 267, 200, 160, 134,115, 100, 89]
+        # for i in range(extra_iters[self.times] - self.users[0].train_counter):
+        #     user = self.users[0]
+        #     user.train(list(self.server.model.parameters()))
+        #     self.server.update_parameters(user.id, user.model.parameters(), user.train_data_samples)
+        #     self.server.clear_update_cache()
+        #     self.evaluate()
         
         # async
         # train_count = []
