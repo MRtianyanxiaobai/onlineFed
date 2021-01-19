@@ -22,8 +22,8 @@ IMAGE_SIZE_CIFAR = 32
 NUM_CHANNELS_CIFAR = 3
 
 def read_data(dataset, niid, num_users, user_labels):
-    train_path = './data/'+dataset+'/train.json'
-    test_path = './data/'+dataset+'/test.json'
+    train_path = './data/'+dataset+'/train_'+str(num_users)+'u_'+str(user_labels)+'l.json'
+    test_path = './data/'+dataset+'/test_'+str(num_users)+'u_'+str(user_labels)+'l.json'
     if os.path.exists(train_path) and os.path.exists(test_path):
         with open(train_path, 'r') as train_f:
             train_data = json.load(train_f)
@@ -44,15 +44,16 @@ def read_data(dataset, niid, num_users, user_labels):
     if niid == False:
         user_labels = 10
     
-    transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     if dataset == 'Cifar10':
+        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
         trainset = torchvision.datasets.CIFAR10(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.CIFAR10(root='./data', train=False,download=True, transform=transform)
     if dataset == 'MNIST':
-        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize(0.5, 0.5)])
+        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
         trainset = torchvision.datasets.MNIST(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.MNIST(root='./data', train=False,download=True, transform=transform)
-    if dataset == 'FasionMNIST':
+    if dataset == 'FashionMNIST':
+        transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
         trainset = torchvision.datasets.FashionMNIST(root='./data', train=True,download=True, transform=transform)
         testset = torchvision.datasets.FashionMNIST(root='./data', train=False,download=True, transform=transform)
 
@@ -122,7 +123,7 @@ def read_data(dataset, niid, num_users, user_labels):
     print("class samples:", idx)
 
     # Create data structure
-    train_data = {'users': [], 'user_data':{}, 'num_samples':[]}
+    train_data = {'users': [], 'user_data':{}, 'num_samples':[], 'niid': niid, 'user_labels': user_labels}
     test_data = {'users': [], 'user_data':{}, 'num_samples':[]}
 
     for i in range(num_users):
@@ -143,6 +144,10 @@ def read_data(dataset, niid, num_users, user_labels):
 
     print("Num_samples:", train_data['num_samples'])
     print("Total_samples:",sum(train_data['num_samples'] + test_data['num_samples']))
+    with open(train_path,'w') as outfile:
+        json.dump(train_data, outfile)
+    with open(test_path, 'w') as outfile:
+        json.dump(test_data, outfile)
     return train_data['users'], _ , train_data['user_data'], test_data['user_data']
 
 def read_user_data(index,data,dataset):
@@ -174,8 +179,8 @@ def read_user_data(index,data,dataset):
     return id, train_data, test_data
 
 def read_data_async(dataset, niid, num_users, user_labels):
-    train_path = './data/'+dataset+'/train.json'
-    test_path = './data/'+dataset+'/test.json'
+    train_path = './data/'+dataset+'/train_'+str(num_users)+'u_'+str(user_labels)+'l.json'
+    test_path = './data/'+dataset+'/test_'+str(num_users)+'u_'+str(user_labels)+'l.json'
     if os.path.exists(train_path) and os.path.exists(test_path):
         with open(train_path, 'r') as train_f:
             train_data = json.load(train_f)

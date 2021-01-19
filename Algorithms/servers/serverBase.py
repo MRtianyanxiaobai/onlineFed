@@ -18,19 +18,19 @@ class Server:
         self.update_list = []
         self.users = {}
 
-    def append_user(self, id, samples):
-        self.users[id] = Object(dict(id=id, model=copy.deepcopy(list(self.model.parameters())),samples=samples))
+    def append_user(self, id, samples, delay = 0):
+        self.users[id] = Object(dict(id=id, model=copy.deepcopy(list(self.model.parameters())), samples=samples, delay=delay))
 
-    def update_parameters(self, id, new_parameters, sample_len):
-        self.append_update_cache(id, new_parameters, sample_len)
+    def update_parameters(self, id, new_parameters, sample_len, delay = 0):
+        self.append_update_cache(id, new_parameters, sample_len, delay)
         if self.async_process == True and len(self.update_list) != 0:
             self.clear_update_cache()
     
-    def append_update_cache(self, id, new_parameters, samples_len):
+    def append_update_cache(self, id, new_parameters, samples_len, delay = 0):
         if id in self.users:
-            self.update_list.append(Object(dict(id=id, model=new_parameters, samples=samples_len)))
+            self.update_list.append(Object(dict(id=id, model=new_parameters, samples=samples_len, delay=delay)))
         else:
-            self.users[id] = Object(dict(id=id, model=new_parameters,samples=samples_len))
+            self.users[id] = Object(dict(id=id, model=new_parameters,samples=samples_len, delay=delay))
             print('append user, ', id)
 
     def clear_update_cache(self):

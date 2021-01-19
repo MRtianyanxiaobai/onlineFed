@@ -60,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_global_iters", type=int, default=800)
     parser.add_argument("--local_epochs", type=int, default=20)
     parser.add_argument("--optimizer", type=str, default="SGD")
-    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "LGP", "PerFed"]) 
+    parser.add_argument("--algorithm", type=str, default="FedAvg",choices=["FedAvg", "ASO", "LGP", "PerFed", "FedAsync"]) 
     parser.add_argument("--numusers", type=int, default=10, help="Number of Users per round")
     parser.add_argument("--user_labels", type=int, default=5, help="Number of Labels per client")
     parser.add_argument("--niid", type=str2bool, default=True, help="data distrabution for iid or niid")

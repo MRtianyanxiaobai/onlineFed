@@ -7,10 +7,12 @@ from Algorithms.servers.serverASO import ServerASO
 from Algorithms.servers.serverFedAvg import ServerFedAvg
 from Algorithms.servers.serverLGP import ServerLGP
 from Algorithms.servers.serverPerFed import ServerPerFed
+from Algorithms.servers.serverFedAsync import serverFedAsync
 from Algorithms.users.userASO import UserASO
 from Algorithms.users.userFedAvgBase import UserFedAvg
 from Algorithms.users.userLGP import UserLGP
 from Algorithms.users.userPerFed import UserPerFed
+from Algorithms.users.userFedAsync import UserFedAsync
 from utils.model_utils import read_data, read_user_data
 import torch
 import pandas as pd
@@ -66,6 +68,8 @@ class Scheduler:
                 user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
             if algorithm == 'PerFed':
                 user = UserPerFed(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
+            if algorithm == 'FedAsync':
+                user = UserFedAsync(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load, i+9)
             self.users.append(user)
             test_data.extend(test)
         for i in range(self.times, self.num_users):
@@ -78,6 +82,8 @@ class Scheduler:
                 user = UserASO(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             if algorithm == 'LGP':
                 user = UserLGP(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
+            if algorithm == 'FedAsync':
+                user = UserFedAsync(id, train, test, model, async_process, batch_size, learning_rate, lamda, beta, local_epochs, optimizer, data_load)
             self.users.append(user)
             test_data.extend(test)
         if algorithm == 'FedAvg':
@@ -88,6 +94,8 @@ class Scheduler:
             self.server = ServerASO(algorithm, model, async_process, test_data, batch_size)
         if algorithm == 'LGP':
             self.server = ServerLGP(algorithm, model, async_process, test_data, batch_size)
+        if algorithm == 'FedAsync':
+            self.server = serverFedAsync(algorithm, model, async_process, test_data, batch_size)
         for user in self.users:
             self.server.append_user(user.id, user.train_data_samples)
     
