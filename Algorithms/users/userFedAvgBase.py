@@ -38,36 +38,36 @@ class UserFedAvg(User):
 
     def run(self, server):
         if self.check_flag is True:
-            if self.trained is True:
-                if self.delay_counter == self.delay:
-                    server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
-                    self.delay_counter = 0
-                    self.trained = False
-                    self.check_flag = False
-                    return
-                else:
-                    self.delay_counter = self.delay_counter + 1
-                    return 
+            # if self.trained is True:
+            #     if self.delay_counter == self.delay:
+            #         server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
+            #         self.delay_counter = 0
+            #         self.trained = False
+            #         self.check_flag = False
+            #         return
+            #     else:
+            #         self.delay_counter = self.delay_counter + 1
+            #         return 
             # sync drop
-            # if self.delay_counter < self.delay:
-            #     self.delay_counter = self.delay_counter + 1
-            #     return
+            if self.delay_counter < self.delay:
+                self.delay_counter = self.delay_counter + 1
+                return
             global_model = self.get_global_parameters(server)
             self.train(global_model)
             self.train_counter = self.train_counter + 1
             # sync drop
-            # if self.delay == 0:
-            #     server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
-            # self.delay_counter = 0
-            # self.check_flag = False
-
-            if self.delay_counter == self.delay:
+            if self.delay == 0:
                 server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
-                self.check_flag = False
-                self.delay_counter = 0
-                self.trained = False
-            else:
-                self.delay_counter = self.delay_counter + 1
+            self.delay_counter = 0
+            self.check_flag = False
+
+            # if self.delay_counter == self.delay:
+            #     server.update_parameters(self.id, list(self.model.parameters()), self.train_data_samples)
+            #     self.check_flag = False
+            #     self.delay_counter = 0
+            #     self.trained = False
+            # else:
+            #     self.delay_counter = self.delay_counter + 1
         else:
             global_model = self.get_global_parameters(server)
             self.train(global_model)

@@ -1,7 +1,7 @@
 import argparse
-from utils.model_utils import read_data_async
+from utils.model_utils import read_data
 def main(dataset, num_users, user_labels, niid):
-    read_data_async(dataset, niid, num_users, user_labels)
+    read_data(dataset, niid, num_users, user_labels)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):

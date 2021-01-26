@@ -29,7 +29,7 @@ class Scheduler:
         self.async_process = async_process
         self.lamda = lamda
         self.beta = beta
-        self.times = times
+        self.times = 8
         self.data_load = data_load
         self.extra = extra
         self.num_users = num_users

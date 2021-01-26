@@ -48,8 +48,8 @@ class UserLGP(User):
                     global_model = self.get_global_parameters(server)
                     if self.delay > 1:
                         for local, last_glob, glob, bunch in zip(self.model.parameters(), self.last_global, global_model, self.bunch):
-                            sim = torch.cosine_similarity(torch.flatten(bunch.data), torch.flatten(local.data), dim=0).item()
-                            local.data = glob.data + (local.data - last_glob.data)*((glob.data - bunch.data)*sim+1)
+                            sim = torch.cosine_similarity(torch.flatten(bunch.data - last_glob.data), torch.flatten(local.data-last_glob.data), dim=0).item()
+                            local.data = glob.data + (local.data - last_glob.data)*(local.data - last_glob.data)*(glob.data - bunch.data) + (local.data - last_glob.data)
                     else:
                         for local, last_glob, glob in zip(self.model.parameters(), self.last_global, global_model):
                             local.data = glob.data + (local.data - last_glob.data)
